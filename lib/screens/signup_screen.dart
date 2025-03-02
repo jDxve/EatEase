@@ -7,7 +7,7 @@ import 'package:email_validator/email_validator.dart'; // Add this import for em
 import 'dart:io';
 
 final String apiUrl = (Platform.isAndroid) 
-    ? "http://10.0.2.2:5001/api/users/register"  // Use 10.0.2.2 for Android Emulator
+    ? "http://192.168.1.244:5001/api/users/register"  // Use 10.0.2.2 for Android Emulator
     : "http://localhost:5001/api/users/register";// Replace with your API URL
 
 class SignupScreen extends StatefulWidget {

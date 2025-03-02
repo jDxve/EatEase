@@ -7,7 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 
 final String apiUrl = (Platform.isAndroid)
-    ? "http://10.0.2.2:5001/api/users/login" // Use 10.0.2.2 for Android Emulator
+    ? "http://192.168.1.244:5001/api/users/login" // Use 10.0.2.2 for Android Emulator
     : "http://localhost:5001/api/users/login"; // Use localhost for iOS Simulator
 
 class SignInScreen extends StatefulWidget {

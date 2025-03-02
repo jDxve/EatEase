@@ -3,13 +3,13 @@ const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const bcrypt = require("bcrypt");
-const cors = require("cors"); // Import CORS
-const User = require("./models/User"); // Adjust the path as necessary
+const cors = require("cors");
+const User = require("./models/User");
 
 const PORT = process.env.PORT || 5001;
 const app = express();
 app.use(bodyParser.json());
-app.use(cors()); // Enable CORS for API calls
+app.use(cors());
 
 // Connect to MongoDB
 mongoose
@@ -69,7 +69,17 @@ app.post("/api/users/login", async (req, res) => {
   }
 });
 
+const Restaurant = require("./models/Restaurant"); // Adjust the path as necessary
 
+// Fetch all restaurants Route
+app.get('/api/restaurants', async (req, res) => {
+  try {
+    const restaurants = await Restaurant.find({ status: 1 }); // Simplified
+    res.status(200).json(restaurants);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Start the server
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
