@@ -20,6 +20,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
   Map<String, dynamic>? restaurantDetails;
   bool isLoading = true;
   String errorMessage = '';
+  int? selectedCategory; // Keep track of the selected category ID
 
   @override
   void initState() {
@@ -52,6 +53,12 @@ class _DetailsScreenState extends State<DetailsScreen> {
         isLoading = false;
       });
     }
+  }
+
+  void onCategorySelected(int? id) {
+    setState(() {
+      selectedCategory = id; // Update the selected category ID
+    });
   }
 
   @override
@@ -215,11 +222,11 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                                 '(${restaurantDetails!['rating_count']?.toString() ?? '0'})')
                                           ],
                                         ),
-                                        //call the scrollable button widget
+                                        // Call the scrollable button widget and pass the onCategorySelected callback
                                         const SizedBox(height: 10),
-                                        ScrollableButtons(),
+                                        ScrollableButtons(onCategorySelected: onCategorySelected),
                                         const SizedBox(height: 10),
-                                        FoodList(),
+                                        FoodList(selectedCategory: selectedCategory), // Pass the selected category ID
                                       ],
                                     ),
                                   ),

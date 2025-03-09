@@ -4,13 +4,17 @@ import 'dart:convert';
 import 'dart:io';
 
 class ScrollableButtons extends StatefulWidget {
+  final Function(int?) onCategorySelected; // Change to accept nullable int
+
+  ScrollableButtons({required this.onCategorySelected}); // Update constructor
+
   @override
   _ScrollableButtonsState createState() => _ScrollableButtonsState();
 }
 
 class _ScrollableButtonsState extends State<ScrollableButtons> {
   int? activeIndex = 0;
-  List<String> categories = ["All"];
+  List<Map<String, dynamic>> categories = []; // Change to a list of maps
 
   @override
   void initState() {
@@ -30,9 +34,13 @@ class _ScrollableButtonsState extends State<ScrollableButtons> {
         List<dynamic> categoryData = jsonDecode(response.body);
 
         setState(() {
-          categories = ["All"];
-          categories.addAll(
-              categoryData.map((category) => category['name'].toString()).toList());
+          categories = [
+            {"id": null, "name": "All"}
+          ]; // Add "All" category
+          categories.addAll(categoryData
+              .map((category) =>
+                  {"id": category['id'], "name": category['name']})
+              .toList());
         });
       }
     } catch (error) {
@@ -56,21 +64,22 @@ class _ScrollableButtonsState extends State<ScrollableButtons> {
                   setState(() {
                     activeIndex = index;
                   });
+                  widget.onCategorySelected(
+                      categories[index]['id']); // Pass the category ID
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      activeIndex == index ? const Color.fromARGB(255, 211, 43, 31) : Colors.white,
+                  backgroundColor: activeIndex == index
+                      ? const Color.fromARGB(255, 168, 26, 16)
+                      : Colors.white,
                   foregroundColor:
                       activeIndex == index ? Colors.white : Colors.black,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
-                    side: activeIndex == index
-                        ? BorderSide.none
-                        : BorderSide(color: Colors.grey, width: 0.5),
+                    side: BorderSide(color: Colors.grey, width: 0.5),
                   ),
                 ),
                 child: Text(
-                  categories[index],
+                  categories[index]['name'], // Use category name
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
