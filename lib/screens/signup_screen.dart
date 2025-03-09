@@ -6,9 +6,9 @@ import 'dart:convert';
 import 'package:email_validator/email_validator.dart'; // Add this import for email validation
 import 'dart:io';
 
-final String apiUrl = (Platform.isAndroid) 
-    ? "http://192.168.1.244:5001/api/users/register"  // Use 10.0.2.2 for Android Emulator
-    : "http://localhost:5001/api/users/register";// Replace with your API URL
+final String apiUrl = (Platform.isAndroid)
+    ? "http://192.168.1.244:5001/api/users/register" // Use 10.0.2.2 for Android Emulator
+    : "http://localhost:5001/api/users/register"; // Replace with your API URL
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -129,7 +129,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 const SizedBox(height: 80),
                 _buildSignUpButton(),
                 const SizedBox(height: 8),
-                _buildAlreadyHaveAccountText() 
+                _buildAlreadyHaveAccountText()
               ],
             ),
           ),
@@ -188,9 +188,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
   Widget _buildEmailTextField() {
     return _buildTextField(
-      controller: _emailController,
-      labelText: 'E-mail',
-      obscureText: false );
+        controller: _emailController, labelText: 'E-mail', obscureText: false);
   }
 
   Widget _buildPhoneNumberTextField() {
@@ -257,7 +255,7 @@ class _SignupScreenState extends State<SignupScreen> {
           labelStyle: const TextStyle(
               color: Colors.grey, fontSize: 17, fontWeight: FontWeight.w500),
           contentPadding:
-          const EdgeInsets.symmetric(vertical: 17.0, horizontal: 20.0),
+              const EdgeInsets.symmetric(vertical: 17.0, horizontal: 20.0),
           enabledBorder: OutlineInputBorder(
             borderSide: const BorderSide(
                 color: Color.fromARGB(255, 188, 187, 187), width: 1.5),
@@ -358,106 +356,106 @@ class _SignupScreenState extends State<SignupScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: (section == 'terms'
-                    ? [
-                        {
-                          'id': 'acceptance',
-                          'title': '1. Acceptance of Terms',
-                          'content':
-                              'By accessing or using our mobile application "EatEase," you agree to comply with these Terms.'
-                        },
-                        {
-                          'id': 'use',
-                          'title': '2. Use of the Service',
-                          'content':
-                              'You must be at least 18 years old or have parental consent to use the app.'
-                        },
-                        {
-                          'id': 'payments',
-                          'title': '3. Ordering and Payments',
-                          'content':
-                              'Orders placed through the app are binding once confirmed by the eatery.'
-                        },
-                        {
-                          'id': 'refunds',
-                          'title': '4. Cancellations and Refunds',
-                          'content':
-                              'Cancellation policies are set by individual eateries.'
-                        },
-                        {
-                          'id': 'conduct',
-                          'title': '5. User Conduct',
-                          'content':
-                              'You agree not to misuse the platform, including fraudulent activities, abusive behavior, or spamming.'
-                        },
-                        {
-                          'id': 'liability',
-                          'title': '6. Limitation of Liability',
-                          'content':
-                              'EatEase acts as a facilitator between users and eateries.'
-                        },
-                        {
-                          'id': 'changes',
-                          'title': '7. Changes to Terms',
-                          'content':
-                              'We reserve the right to update these Terms at any time.'
-                        },
-                        {
-                          'id': 'contact',
-                          'title': '8. Contact Us',
-                          'content':
-                              'For any questions or concerns, contact us at [Your Email].'
-                        },
-                      ]
-                    : [
-                        {
-                          'id': 'collection',
-                          'title': '1. Information Collection',
-                          'content':
-                              'We collect personal data such as name, email, and location for better service.'
-                        },
-                        {
-                          'id': 'usage',
-                          'title': '2. How We Use Your Information',
-                          'content':
-                              'Your data is used for order processing, customer support, and app improvements.'
-                        },
-                        {
-                          'id': 'sharing',
-                          'title': '3. Data Sharing and Disclosure',
-                          'content':
-                              'We do not sell or share your data with third parties except as required by law.'
-                        },
-                        {
-                          'id': 'security',
-                          'title': '4. Data Security',
-                          'content':
-                              'We implement strong security measures to protect your personal data.'
-                        },
-                        {
-                          'id': 'cookies',
-                          'title': '5. Cookies and Tracking Technologies',
-                          'content':
-                              'Our app may use cookies and analytics tools to enhance your experience.'
-                        },
-                        {
-                          'id': 'rights',
-                          'title': '6. Your Privacy Rights',
-                          'content':
-                              'You have the right to request access, correction, or deletion of your personal data.'
-                        },
-                        {
-                          'id': 'changes',
-                          'title': '7. Changes to This Policy',
-                          'content':
-                              'We may update this Privacy Policy from time to time. Please review it periodically.'
-                        },
-                        {
-                          'id': 'contact',
-                          'title': '8. Contact Us',
-                          'content':
-                              'For any privacy concerns, contact us at [Your Email].'
-                        },
-                      ])
+                        ? [
+                            {
+                              'id': 'acceptance',
+                              'title': '1. Acceptance of Terms',
+                              'content':
+                                  'By accessing or using our mobile application "EatEase," you agree to comply with these Terms.'
+                            },
+                            {
+                              'id': 'use',
+                              'title': '2. Use of the Service',
+                              'content':
+                                  'You must be at least 18 years old or have parental consent to use the app.'
+                            },
+                            {
+                              'id': 'payments',
+                              'title': '3. Ordering and Payments',
+                              'content':
+                                  'Orders placed through the app are binding once confirmed by the eatery.'
+                            },
+                            {
+                              'id': 'refunds',
+                              'title': '4. Cancellations and Refunds',
+                              'content':
+                                  'Cancellation policies are set by individual eateries.'
+                            },
+                            {
+                              'id': 'conduct',
+                              'title': '5. User Conduct',
+                              'content':
+                                  'You agree not to misuse the platform, including fraudulent activities, abusive behavior, or spamming.'
+                            },
+                            {
+                              'id': 'liability',
+                              'title': '6. Limitation of Liability',
+                              'content':
+                                  'EatEase acts as a facilitator between users and eateries.'
+                            },
+                            {
+                              'id': 'changes',
+                              'title': '7. Changes to Terms',
+                              'content':
+                                  'We reserve the right to update these Terms at any time.'
+                            },
+                            {
+                              'id': 'contact',
+                              'title': '8. Contact Us',
+                              'content':
+                                  'For any questions or concerns, contact us at [Your Email].'
+                            },
+                          ]
+                        : [
+                            {
+                              'id': 'collection',
+                              'title': '1. Information Collection',
+                              'content':
+                                  'We collect personal data such as name, email, and location for better service.'
+                            },
+                            {
+                              'id': 'usage',
+                              'title': '2. How We Use Your Information',
+                              'content':
+                                  'Your data is used for order processing, customer support, and app improvements.'
+                            },
+                            {
+                              'id': 'sharing',
+                              'title': '3. Data Sharing and Disclosure',
+                              'content':
+                                  'We do not sell or share your data with third parties except as required by law.'
+                            },
+                            {
+                              'id': 'security',
+                              'title': '4. Data Security',
+                              'content':
+                                  'We implement strong security measures to protect your personal data.'
+                            },
+                            {
+                              'id': 'cookies',
+                              'title': '5. Cookies and Tracking Technologies',
+                              'content':
+                                  'Our app may use cookies and analytics tools to enhance your experience.'
+                            },
+                            {
+                              'id': 'rights',
+                              'title': '6. Your Privacy Rights',
+                              'content':
+                                  'You have the right to request access, correction, or deletion of your personal data.'
+                            },
+                            {
+                              'id': 'changes',
+                              'title': '7. Changes to This Policy',
+                              'content':
+                                  'We may update this Privacy Policy from time to time. Please review it periodically.'
+                            },
+                            {
+                              'id': 'contact',
+                              'title': '8. Contact Us',
+                              'content':
+                                  'For any privacy concerns, contact us at [Your Email].'
+                            },
+                          ])
                     .map<Widget>((section) {
                   return _buildSection(section['title']!, section['content']!);
                 }).toList(),
@@ -497,145 +495,152 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
-Widget _buildSection(String title, String content) {
-  return Padding(
-    padding: const EdgeInsets.only(bottom: 8.0),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [ // Corrected here
-        Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 5),
-        Text(content),
-        const SizedBox(height: 10),
-      ],
-    ),
-  );
-}
+  Widget _buildSection(String title, String content) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Corrected here
+          Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 5),
+          Text(content),
+          const SizedBox(height: 10),
+        ],
+      ),
+    );
+  }
 
-Widget _buildSignUpButton() {
-  return Center(
-    child: SizedBox(
-      width: 250,
-      height: 50,
-      child: ElevatedButton(
-        onPressed: () async {
-          String fullName = _fullNameController.text;
-          String email = _emailController.text;
-          String phone = _phoneController.text;
-          String password = _passwordController.text;
-          String confirmPassword = _confirmPasswordController.text;
+  Widget _buildSignUpButton() {
+    return Center(
+      child: SizedBox(
+        width: 250,
+        height: 50,
+        child: ElevatedButton(
+          onPressed: () async {
+            String fullName = _fullNameController.text;
+            String email = _emailController.text;
+            String phone = _phoneController.text;
+            String password = _passwordController.text;
+            String confirmPassword = _confirmPasswordController.text;
 
-          // Reset error messages
-          setState(() {
-            _emailError = null;
-            _phoneError = null;
-            _passwordError = null;
-            _termsError = null; // Reset terms error
-            _showNotification = false; // Hide notification initially
-          });
-
-          // Check if the terms and conditions are accepted
-          if (!_isChecked) {
+            // Reset error messages
             setState(() {
-              _termsError =
-                  'You must accept the terms of use and privacy policy.';
-            });
-            return; // Exit the function if not checked
-          }
-
-          if (!EmailValidator.validate(email)) {
-            setState(() {
-              _emailError = 'Invalid email format.';
-            });
-            return;
-          }
-          if (phone.isEmpty || phone.length < 10) {
-            setState(() {
-              _phoneError = 'Please enter a valid phone number.';
-            });
-            return;
-          }
-          if (!isPasswordStrong(password)) {
-            setState(() {
-              _passwordError = 'Password must be at least 8 characters long, '
-                  'include an uppercase letter, a lowercase letter, a number, '
-                  'and a special character.';
-            });
-            return;
-          }
-          if (password != confirmPassword) {
-            setState(() {
-              _passwordError = 'The passwords do not match. Please try again.';
-            });
-            return;
-          }
-
-          var response = await http.post(
-            Uri.parse(apiUrl), // Use the global constant here
-            headers: {"Content-Type": "application/json"},
-            body: jsonEncode({
-              "fullName": fullName,
-              "email": email,
-              "phone": phone,
-              "password": password
-            }),
-          );
-
-          // Handle the response
-          if (response.statusCode == 201) {
-            print("✅ User registered successfully!");
-            setState(() {
-              _notificationMessage = "User  registered successfully!";
-              _showNotification = true; // Show notification
+              _emailError = null;
+              _phoneError = null;
+              _passwordError = null;
+              _termsError = null; // Reset terms error
+              _showNotification = false; // Hide notification initially
             });
 
-            // Delay for 3 seconds and then navigate to SignInScreen
-            Future.delayed(const Duration(seconds: 3), () {
+            // Check if the terms and conditions are accepted
+            if (!_isChecked) {
               setState(() {
-                _showNotification = false; // Hide notification after 3 seconds
+                _termsError =
+                    'You must accept the terms of use and privacy policy.';
+              });
+              return; // Exit the function if not checked
+            }
+
+            if (!EmailValidator.validate(email)) {
+              setState(() {
+                _emailError = 'Invalid email format.';
+              });
+              return;
+            }
+            if (phone.isEmpty || phone.length < 10) {
+              setState(() {
+                _phoneError = 'Please enter a valid phone number.';
+              });
+              return;
+            }
+            if (!isPasswordStrong(password)) {
+              setState(() {
+                _passwordError = 'Password must be at least 8 characters long, '
+                    'include an uppercase letter, a lowercase letter, a number, '
+                    'and a special character.';
+              });
+              return;
+            }
+            if (password != confirmPassword) {
+              setState(() {
+                _passwordError =
+                    'The passwords do not match. Please try again.';
+              });
+              return;
+            }
+
+            var response = await http.post(
+              Uri.parse(apiUrl), // Use the global constant here
+              headers: {"Content-Type": "application/json"},
+              body: jsonEncode({
+                "fullName": fullName,
+                "email": email,
+                "phone": phone,
+                "password": password
+              }),
+            );
+            print("Response status: ${response.statusCode}");
+            print("Response body: ${response.body}");
+            // Handle the response
+            if (response.statusCode == 201) {
+              print("✅ User registered successfully!");
+              setState(() {
+                _notificationMessage = "User  registered successfully!";
+                _showNotification = true; // Show notification
               });
 
-              // Navigate to SignInScreen
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => SignInScreen()),
-              );
-            });
-          } else {
-            print("❌ Registration failed: ${response.body}");
-            setState(() {
-              _notificationMessage = "Registration failed: E-mail already used.";
-              _showNotification = true; // Show notification
-            });
+              // Delay for 3 seconds and then navigate to SignInScreen
+              Future.delayed(const Duration(seconds: 1), () {
+                setState(() {
+                  _showNotification =
+                      false; // Hide notification after 3 seconds
+                });
 
-            // Delay for 3 seconds and then hide the notification
-            Future.delayed(const Duration(seconds: 3), () {
-              setState(() {
-                _showNotification = false; // Hide notification after 3 seconds
+                // Navigate to SignInScreen
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => SignInScreen()),
+                );
               });
-            });
-          }
-        },
-        style: ElevatedButton.styleFrom(
-          overlayColor: Colors.white,
-          backgroundColor: Colors.redAccent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            } else {
+              print("❌ Registration failed: ${response.body}");
+              setState(() {
+                _notificationMessage =
+                    "Registration failed: E-mail already used.";
+                _showNotification = true; // Show notification
+              });
+
+              // Delay for 3 seconds and then hide the notification
+              Future.delayed(const Duration(seconds: 1), () {
+                setState(() {
+                  _showNotification =
+                      false; // Hide notification after 3 seconds
+                });
+              });
+            }
+          },
+          style: ElevatedButton.styleFrom(
+            overlayColor: Colors.white,
+            backgroundColor: Colors.redAccent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
-        ),
-        child: const Text(
-          "Sign Up",
-          style: TextStyle(
-            fontSize: 16,
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+          child: const Text(
+            "Sign Up",
+            style: TextStyle(
+              fontSize: 16,
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
+
   bool isPasswordStrong(String password) {
     // Check for minimum length
     if (password.length < 8) return false;
@@ -671,7 +676,7 @@ Widget _buildSignUpButton() {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: ( context) => SignInScreen()),
+              MaterialPageRoute(builder: (context) => SignInScreen()),
             );
           },
           style: TextButton.styleFrom(

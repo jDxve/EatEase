@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'signup_screen.dart';
-import 'package:eatease/components/bottom_nav.dart'; // Adjust the path if necessary
+import 'package:eatease/components/bottom_nav.dart'; 
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 
 final String apiUrl = (Platform.isAndroid)
-    ? "http://192.168.1.244:5001/api/users/login" // Use 10.0.2.2 for Android Emulator
-    : "http://localhost:5001/api/users/login"; // Use localhost for iOS Simulator
+    ? "http://192.168.1.244:5001/api/users/login"
+    : "http://localhost:5001/api/users/login";
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -23,7 +23,7 @@ class _SignInScreenState extends State<SignInScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  String? _errorMessage; // State variable for error message
+  String? _errorMessage; 
 
   @override
   Widget build(BuildContext context) {
@@ -88,12 +88,12 @@ class _SignInScreenState extends State<SignInScreen> {
             _buildPasswordTextField(),
             // Display error message aligned to the right with left padding
             Padding(
-              padding: const EdgeInsets.only(left: 6.0), // Add left padding
+              padding: const EdgeInsets.only(left: 6.0),
               child: Row(
                 mainAxisAlignment:
-                    MainAxisAlignment.start, // Align to the start
+                    MainAxisAlignment.start,
                 children: [
-                  if (_errorMessage != null) // Show error message if it exists
+                  if (_errorMessage != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 1.3),
                       child: Text(
@@ -155,7 +155,7 @@ class _SignInScreenState extends State<SignInScreen> {
     Widget? suffixIcon,
   }) {
     return Container(
-      width: 360,
+      width: 370,
       decoration: BoxDecoration(
         boxShadow: [
           BoxShadow(
@@ -214,12 +214,12 @@ class _SignInScreenState extends State<SignInScreen> {
 
   Widget _buildRememberMeAndForgotPasswordRow() {
     return Transform.translate(
-      offset: const Offset(0, -7), // Moves it 10 pixels up
+      offset: const Offset(0, -7),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           Transform.scale(
-            scale: .75, // Adjust the size of the checkbox
+            scale: .75, 
             child: Checkbox(
               value: _rememberMe,
               onChanged: (bool? newValue) {
@@ -230,8 +230,8 @@ class _SignInScreenState extends State<SignInScreen> {
               },
               activeColor: Colors.redAccent,
               materialTapTargetSize:
-                  MaterialTapTargetSize.shrinkWrap, // Reduce extra padding
-              visualDensity: VisualDensity.compact, // Minimize spacing
+                  MaterialTapTargetSize.shrinkWrap, 
+              visualDensity: VisualDensity.compact, 
             ),
           ),
           const Text(
@@ -289,7 +289,7 @@ class _SignInScreenState extends State<SignInScreen> {
     );
   }
 
-  bool _isLoading = false; // Add this variable
+  bool _isLoading = false;
 
   Future<void> _loginUser() async {
     String email = _emailController.text;
@@ -297,13 +297,13 @@ class _SignInScreenState extends State<SignInScreen> {
 
     // Clear previous error message
     setState(() {
-      _errorMessage = null; // Clear any previous error message
-      _isLoading = true; // Set loading to true
+      _errorMessage = null; 
+      _isLoading = true;
     });
 
     try {
       var response = await http.post(
-        Uri.parse(apiUrl), // Use the appropriate API URL
+        Uri.parse(apiUrl),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "email": email,
@@ -330,7 +330,7 @@ class _SignInScreenState extends State<SignInScreen> {
     } catch (e) {
       // Handle exceptions
       setState(() {
-        _errorMessage = 'An error occurred: $e'; // Set error message
+      _errorMessage = 'An error occurred: $e'; 
       });
     } finally {
       // Set loading to false after the operation
@@ -342,32 +342,32 @@ class _SignInScreenState extends State<SignInScreen> {
 
   Widget _buildSignupTextButton() {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center, // Center horizontally
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         const Text(
           "Don't have an account?",
           style: TextStyle(fontSize: 12, fontWeight: FontWeight.w400),
         ),
-        const SizedBox(width: 4), // Add small spacing between texts
+        const SizedBox(width: 4), 
         TextButton(
           onPressed: () {
             Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (context) => SignupScreen()), // Navigate to SignUp
+                  builder: (context) => SignupScreen()),
             );
           },
           style: TextButton.styleFrom(
-            padding: EdgeInsets.zero, // Remove extra padding
-            minimumSize: Size(0, 0), // Prevent extra spacing
+            padding: EdgeInsets.zero,
+            minimumSize: Size(0, 0),
             tapTargetSize:
-                MaterialTapTargetSize.shrinkWrap, // Reduce touch area
+                MaterialTapTargetSize.shrinkWrap,
           ),
           child: const Text(
             "Sign Up",
             style: TextStyle(
               fontSize: 12,
-              fontWeight: FontWeight.w500, // Slightly bolder for emphasis
+              fontWeight: FontWeight.w500,
               color: Colors.redAccent,
             ),
           ),
