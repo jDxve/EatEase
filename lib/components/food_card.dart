@@ -180,7 +180,7 @@ class FoodList extends StatelessWidget {
             .toList();
 
     return Container(
-      height: 385,
+      height: 365,
       child: GridView.builder(
         padding: EdgeInsets.zero,
         shrinkWrap: true,

@@ -110,6 +110,7 @@ class _HomeScreenState extends State<HomeScreen> {
               'businessHours':
                   '${_formatTime(openTimeStr)} - ${_formatTime(closeTimeStr)}',
               'dbStatus': item['status'].toString(),
+              'showClosedNotification': false, // Flag for notification
             };
           } catch (e) {
             print('Error parsing restaurant: $e');
@@ -156,13 +157,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _navigateToDetails(
       BuildContext context, Map<String, dynamic> restaurant) {
-    String resturantId = restaurant['id'].toString();
+    String restaurantId = restaurant['id'].toString();
 
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => DetailsScreen(restaurantId: resturantId),
-      ),
-    );
+    if (restaurant['status'] == 'Unavailable') {
+      setState(() {
+        restaurant['showClosedNotification'] = true; // Show notification if closed
+      });
+    } else {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => DetailsScreen(restaurantId: restaurantId),
+        ),
+      );
+    }
   }
 
   @override
@@ -295,7 +302,26 @@ class _HomeScreenState extends State<HomeScreen> {
     required BuildContext context,
   }) {
     return GestureDetector(
-      onTap: () => _navigateToDetails(context, restaurantData),
+      onTap: () {
+        if (status == 'Unavailable') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Center(
+                child: const Text(
+                  'This restaurant is currently closed',
+                  style: TextStyle(color: Colors.white),
+                  textAlign: TextAlign.center, // Center the text
+                ),
+              ),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating, // Floating behavior
+            ),
+          );
+        } else {
+          _navigateToDetails(context, restaurantData);
+        }
+      },
       child: Container(
         margin: const EdgeInsets.only(left: 16, right: 16),
         decoration: BoxDecoration(
@@ -381,7 +407,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       Row(
                         children: [
                           const Icon(Icons.star, color: Colors.amber, size: 18),
-                          Text(rating, style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600),),
+                          Text(
+                            rating,
+                            style: TextStyle(
+                                color: Colors.red, fontWeight: FontWeight.w600),
+                          ),
                           const SizedBox(width: 4),
                           Text('($ratingCount)')
                         ],

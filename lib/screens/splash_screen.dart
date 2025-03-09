@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:eatease/screens/signin_screen.dart';
+import 'package:eatease/components/bottom_nav.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -38,13 +40,28 @@ class _SplashScreenState extends State<SplashScreen>
     // Delay before starting the animation
     Timer(const Duration(seconds: 1), () {
       _animationController.forward().then((_) {
-        // Navigate after animation completes
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const SignInScreen()),
-        );
+        _checkLoginStatus(); // Check login status after animation completes
       });
     });
+  }
+
+  Future<void> _checkLoginStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    bool? rememberMe = prefs.getBool('remember_me');
+    String? savedEmail = prefs.getString('email');
+    String? savedPassword = prefs.getString('password');
+
+    if (rememberMe == true && savedEmail != null && savedPassword != null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => BottomNav()),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const SignInScreen()),
+      );
+    }
   }
 
   @override

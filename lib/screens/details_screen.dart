@@ -224,9 +224,13 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                         ),
                                         // Call the scrollable button widget and pass the onCategorySelected callback
                                         const SizedBox(height: 10),
-                                        ScrollableButtons(onCategorySelected: onCategorySelected),
+                                        ScrollableButtons(
+                                            onCategorySelected:
+                                                onCategorySelected),
                                         const SizedBox(height: 10),
-                                        FoodList(selectedCategory: selectedCategory), // Pass the selected category ID
+                                        FoodList(
+                                            selectedCategory:
+                                                selectedCategory), // Pass the selected category ID
                                       ],
                                     ),
                                   ),

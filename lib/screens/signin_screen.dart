@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'signup_screen.dart';
-import 'package:eatease/components/bottom_nav.dart'; 
+import 'package:eatease/components/bottom_nav.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -23,7 +23,44 @@ class _SignInScreenState extends State<SignInScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  String? _errorMessage; 
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCredentials();
+  }
+
+  Future<void> _loadCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? savedEmail = prefs.getString('email');
+    String? savedPassword = prefs.getString('password');
+    bool? rememberMe = prefs.getBool('remember_me');
+
+    if (rememberMe == true && savedEmail != null && savedPassword != null) {
+      // Automatically log in the user
+      _emailController.text = savedEmail;
+      _passwordController.text = savedPassword;
+      await _loginUser();
+    }
+  }
+
+  Future<void> _saveCredentials(String email, String password) async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setString('email', email);
+    prefs.setString('password', password);
+  }
+
+  Future<void> _clearCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.remove('email');
+    prefs.remove('password');
+  }
+
+  Future<void> _saveRememberMeState(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setBool('remember_me', value);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,8 +83,6 @@ class _SignInScreenState extends State<SignInScreen> {
               _buildLogo(),
               const SizedBox(height: 30),
               _buildInputContainer(),
-              if (_isLoading) // Show loading indicator if loading
-                const CircularProgressIndicator(),
             ],
           ),
         ),
@@ -86,21 +121,17 @@ class _SignInScreenState extends State<SignInScreen> {
             _buildEmailTextField(),
             const SizedBox(height: 27),
             _buildPasswordTextField(),
-            // Display error message aligned to the right with left padding
             Padding(
               padding: const EdgeInsets.only(left: 6.0),
               child: Row(
-                mainAxisAlignment:
-                    MainAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.start,
                 children: [
                   if (_errorMessage != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 1.3),
                       child: Text(
                         _errorMessage!,
-                        style: TextStyle(
-                            color: Colors.red,
-                            fontSize: 12), // Set font size to 12
+                        style: TextStyle(color: Colors.red, fontSize: 12),
                       ),
                     ),
                 ],
@@ -159,8 +190,8 @@ class _SignInScreenState extends State<SignInScreen> {
       decoration: BoxDecoration(
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.3), // Lighter shadow
-            spreadRadius: 1, // Smaller spread
+            color: Colors.grey.withOpacity(0.3),
+            spreadRadius: 1,
             blurRadius: 6,
             offset: const Offset(2, 3),
           ),
@@ -175,41 +206,32 @@ class _SignInScreenState extends State<SignInScreen> {
           fillColor: Colors.white,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(
-                color: Colors.grey, width: 0.8), // Thinner border
+            borderSide: const BorderSide(color: Colors.grey, width: 0.8),
           ),
           enabledBorder: OutlineInputBorder(
             borderSide: const BorderSide(
-                color: Color.fromARGB(255, 207, 207, 207),
-                width: 0.6), // Even thinner when not focused
+                color: Color.fromARGB(255, 207, 207, 207), width: 0.6),
             borderRadius: BorderRadius.circular(10),
           ),
           focusedBorder: OutlineInputBorder(
-            borderSide: const BorderSide(
-                color: Colors.redAccent,
-                width: 0.9), // Slightly thicker when focused
+            borderSide: const BorderSide(color: Colors.redAccent, width: 0.9),
             borderRadius: BorderRadius.circular(10),
           ),
           labelText: labelText,
           prefixIcon: Icon(
             prefixIcon,
             color: Colors.grey,
-            size: 20, // Slightly smaller icon
+            size: 20,
           ),
           suffixIcon: suffixIcon,
           labelStyle: const TextStyle(
-            fontSize: 15, // Smaller font size
+            fontSize: 15,
             fontWeight: FontWeight.w500,
             color: Colors.black54,
           ),
         ),
       ),
     );
-  }
-
-  Future<void> _saveRememberMeState(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    prefs.setBool('remember_me', value);
   }
 
   Widget _buildRememberMeAndForgotPasswordRow() {
@@ -219,7 +241,7 @@ class _SignInScreenState extends State<SignInScreen> {
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           Transform.scale(
-            scale: .75, 
+            scale: .75,
             child: Checkbox(
               value: _rememberMe,
               onChanged: (bool? newValue) {
@@ -229,9 +251,8 @@ class _SignInScreenState extends State<SignInScreen> {
                 _saveRememberMeState(_rememberMe);
               },
               activeColor: Colors.redAccent,
-              materialTapTargetSize:
-                  MaterialTapTargetSize.shrinkWrap, 
-              visualDensity: VisualDensity.compact, 
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
             ),
           ),
           const Text(
@@ -246,8 +267,7 @@ class _SignInScreenState extends State<SignInScreen> {
               padding: EdgeInsets.zero,
             ),
             child: Padding(
-              padding:
-                  const EdgeInsets.only(right: 8), // Adjust the value as needed
+              padding: const EdgeInsets.only(right: 8),
               child: const Text(
                 'Forgot Password?',
                 style: TextStyle(
@@ -268,7 +288,7 @@ class _SignInScreenState extends State<SignInScreen> {
       width: 250,
       height: 50,
       child: ElevatedButton(
-        onPressed: _loginUser, // Call the login function
+        onPressed: _loginUser,
         style: ElevatedButton.styleFrom(
           overlayColor: Colors.white,
           backgroundColor: Colors.redAccent,
@@ -289,16 +309,13 @@ class _SignInScreenState extends State<SignInScreen> {
     );
   }
 
-  bool _isLoading = false;
-
   Future<void> _loginUser() async {
     String email = _emailController.text;
     String password = _passwordController.text;
 
     // Clear previous error message
     setState(() {
-      _errorMessage = null; 
-      _isLoading = true;
+      _errorMessage = null;
     });
 
     try {
@@ -315,6 +332,13 @@ class _SignInScreenState extends State<SignInScreen> {
       print('Response body: ${response.body}');
 
       if (response.statusCode == 200) {
+        // Save credentials if "Remember Me" is checked
+        if (_rememberMe) {
+          _saveCredentials(email, password);
+        } else {
+          _clearCredentials();
+        }
+
         // Navigate to HomeScreen on successful login
         Navigator.pushReplacement(
           context,
@@ -330,12 +354,7 @@ class _SignInScreenState extends State<SignInScreen> {
     } catch (e) {
       // Handle exceptions
       setState(() {
-      _errorMessage = 'An error occurred: $e'; 
-      });
-    } finally {
-      // Set loading to false after the operation
-      setState(() {
-        _isLoading = false;
+        _errorMessage = 'An error occurred: $e';
       });
     }
   }
@@ -348,20 +367,18 @@ class _SignInScreenState extends State<SignInScreen> {
           "Don't have an account?",
           style: TextStyle(fontSize: 12, fontWeight: FontWeight.w400),
         ),
-        const SizedBox(width: 4), 
+        const SizedBox(width: 4),
         TextButton(
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                  builder: (context) => SignupScreen()),
+              MaterialPageRoute(builder: (context) => SignupScreen()),
             );
           },
           style: TextButton.styleFrom(
             padding: EdgeInsets.zero,
             minimumSize: Size(0, 0),
-            tapTargetSize:
-                MaterialTapTargetSize.shrinkWrap,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
           child: const Text(
             "Sign Up",
