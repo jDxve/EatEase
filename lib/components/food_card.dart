@@ -20,6 +20,7 @@ class FoodCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.only(top: 20, left: 20, right: 20),
+      margin: const EdgeInsets.only(bottom: 10.0, left: 5, right: 5),
       decoration: BoxDecoration(
         color: Colors.pink[50],
         borderRadius: BorderRadius.circular(16),

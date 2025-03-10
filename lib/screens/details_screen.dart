@@ -20,7 +20,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
   Map<String, dynamic>? restaurantDetails;
   bool isLoading = true;
   String errorMessage = '';
-  int? selectedCategory; // Keep track of the selected category ID
+  int? selectedCategory;
 
   @override
   void initState() {
@@ -57,7 +57,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
 
   void onCategorySelected(int? id) {
     setState(() {
-      selectedCategory = id; // Update the selected category ID
+      selectedCategory = id;
     });
   }
 
@@ -241,6 +241,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                         ],
                       ),
       ),
+
     );
   }
 }
