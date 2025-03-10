@@ -37,30 +37,58 @@ class _BottomNavState extends State<BottomNav> {
       bottomNavigationBar: BottomNavigationBar(
         items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
-            icon: ImageIcon(
-              const AssetImage('assets/images/home1.png'),
-              color: _selectedIndex == 0 ? Colors.red : Colors.grey,
+            icon: Padding(
+              padding: const EdgeInsets.only(top: 2.0),
+              child: SizedBox(
+                width: 21,
+                height: 22,
+                child: ImageIcon(
+                  const AssetImage('assets/images/home.png'),
+                  color: _selectedIndex == 0 ? Colors.red : Colors.grey,
+                ),
+              ),
             ),
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: ImageIcon(
-              const AssetImage('assets/images/chat1.png'),
-              color: _selectedIndex == 1 ? Colors.red : Colors.grey,
+            icon: Padding(
+              padding: const EdgeInsets.only(top: 2.0),
+              child: SizedBox(
+                width: 21,
+                height: 22,
+                child: ImageIcon(
+                  const AssetImage('assets/images/chat.png'),
+                  color: _selectedIndex == 1 ? Colors.red : Colors.grey,
+                ),
+              ),
             ),
             label: 'Chat',
           ),
           BottomNavigationBarItem(
-            icon: ImageIcon(
-              const AssetImage('assets/images/bell1.png'),
-              color: _selectedIndex == 2 ? Colors.red : Colors.grey,
+            icon: Padding(
+              padding: const EdgeInsets.only(top: 2.0),
+              child: SizedBox(
+                width: 22,
+                height: 22,
+                child: ImageIcon(
+                  const AssetImage('assets/images/bell.png'),
+                  color: _selectedIndex == 2 ? Colors.red : Colors.grey,
+                ),
+              ),
             ),
             label: 'Notifications',
           ),
           BottomNavigationBarItem(
-            icon: ImageIcon(
-              const AssetImage('assets/images/user1.png'),
-              color: _selectedIndex == 3 ? Colors.red : Colors.grey,
+            icon: Padding(
+              padding: const EdgeInsets.only(top: 2.0),
+              child: SizedBox(
+                width: 22,
+                height: 22,
+                child: ImageIcon(
+                  const AssetImage('assets/images/user.png'),
+                  color: _selectedIndex == 3 ? Colors.red : Colors.grey,
+                ),
+              ),
             ),
             label: 'Profile',
           ),

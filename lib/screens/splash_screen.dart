@@ -21,26 +21,22 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
 
-    // Initialize the animation controller
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
 
-    // Define scale animation (shrinking effect)
     _scaleAnimation = Tween<double>(begin: 1.0, end: 0.7).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
 
-    // Define fade animation (disappearing effect)
     _fadeAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
 
-    // Delay before starting the animation
     Timer(const Duration(seconds: 1), () {
       _animationController.forward().then((_) {
-        _checkLoginStatus(); // Check login status after animation completes
+        _checkLoginStatus();
       });
     });
   }
