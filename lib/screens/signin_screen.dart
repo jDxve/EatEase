@@ -4,11 +4,9 @@ import 'package:eatease/components/bottom_nav.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:io';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-final String apiUrl = (Platform.isAndroid)
-    ? "http://192.168.1.244:5001/api/users/login"
-    : "http://localhost:5001/api/users/login";
+final String apiUrl = "${dotenv.env['API_BASE_URL']}/users/login";
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});

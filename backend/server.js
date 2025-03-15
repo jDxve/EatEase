@@ -113,21 +113,18 @@ app.get("/api/categories", async (req, res) => {
 const Menu = require("./models/Menu");
 
 // ✅ Fetch menu items by restaurant ID Route
-// ✅ Fetch menu items by restaurant ID Route
 app.get("/api/restaurants/:id/menu", async (req, res) => {
   const restaurantId = req.params.id;
-  console.log(`Fetching menu items for restaurant ID: ${restaurantId}`); // ✅ Log the restaurant ID
+  console.log(`Fetching menu items for restaurant ID: ${restaurantId}`);
 
   try {
     const menuItems = await Menu.find({ restaurant_id: restaurantId });
     if (!menuItems.length) {
-      console.log(`No menu items found for restaurant ID: ${restaurantId}`); // ✅ Log when no items are found
-      return res
-        .status(404)
-        .json({
-          restaurant_id: restaurantId,
-          error: "No menu items found for this restaurant",
-        });
+      console.log(`No menu items found for restaurant ID: ${restaurantId}`);
+      return res.status(404).json({
+        restaurant_id: restaurantId,
+        error: "No menu items found for this restaurant",
+      });
     }
     res.json({ restaurant_id: restaurantId, menu: menuItems });
   } catch (error) {

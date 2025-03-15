@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
-import 'dart:io';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'details_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -74,9 +74,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> fetchRestaurants() async {
-    final String apiUrl = (Platform.isAndroid)
-        ? "http://192.168.1.244:5001/api/restaurants"
-        : "http://localhost:5001/api/restaurants";
+    final String apiUrl = "${dotenv.env['API_BASE_URL']}/restaurants";
 
     try {
       final response = await http.get(Uri.parse(apiUrl));
@@ -161,7 +159,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (restaurant['status'] == 'Unavailable') {
       setState(() {
-        restaurant['showClosedNotification'] = true; // Show notification if closed
+        restaurant['showClosedNotification'] =
+            true; // Show notification if closed
       });
     } else {
       Navigator.of(context).push(

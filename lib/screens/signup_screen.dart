@@ -4,11 +4,9 @@ import 'signin_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:email_validator/email_validator.dart'; // Add this import for email validation
-import 'dart:io';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-final String apiUrl = (Platform.isAndroid)
-    ? "http://192.168.1.244:5001/api/users/register" // Use 10.0.2.2 for Android Emulator
-    : "http://localhost:5001/api/users/register"; // Replace with your API URL
+final String apiUrl = "${dotenv.env['API_BASE_URL']}/users/register";
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
