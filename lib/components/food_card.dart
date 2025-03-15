@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http; // Import for HTTP requests
+import 'dart:convert'; // Import for JSON decoding
 
 class FoodCard extends StatelessWidget {
   final String imageUrl;
@@ -92,80 +95,54 @@ class FoodCard extends StatelessWidget {
   }
 }
 
-class FoodList extends StatelessWidget {
-  final int? selectedCategory; // Add this line
+class FoodList extends StatefulWidget {
+  final String restaurantId;
+  final int? selectedCategory;
 
-  FoodList({Key? key, this.selectedCategory})
-      : super(key: key); // Update constructor
+  FoodList({Key? key, required this.restaurantId, this.selectedCategory})
+      : super(key: key);
 
-  final List<Map<String, dynamic>> foodItems = [
-    {
-      "imageUrl": "https://i.ytimg.com/vi/F_x0-cRDP3I/maxresdefault.jpg",
-      "title": "Burger",
-      "price": 99.0,
-      "category": 1,
-    },
-    {
-      "imageUrl": "https://i.ytimg.com/vi/F_x0-cRDP3I/maxresdefault.jpg",
-      "title": "Burger",
-      "price": 99.0,
-      "category": 1,
-    },
-    {
-      "imageUrl": "https://i.ytimg.com/vi/F_x0-cRDP3I/maxresdefault.jpg",
-      "title": "Pizza",
-      "price": 199.0,
-      "category": 2,
-    },
-    {
-      "imageUrl": "https://i.ytimg.com/vi/F_x0-cRDP3I/maxresdefault.jpg",
-      "title": "Pizza",
-      "price": 199.0,
-      "category": 2,
-    },
-    {
-      "imageUrl": "https://i.ytimg.com/vi/F_x0-cRDP3I/maxresdefault.jpg",
-      "title": "Pizza",
-      "price": 199.0,
-      "category": 2,
-    },
-    {
-      "imageUrl": "https://i.ytimg.com/vi/F_x0-cRDP3I/maxresdefault.jpg",
-      "title": "Pasta",
-      "price": 149.0,
-      "category": 3,
-    },
-    {
-      "imageUrl": "https://i.ytimg.com/vi/F_x0-cRDP3I/maxresdefault.jpg",
-      "title": "Pizza",
-      "price": 199.0,
-      "category": 3,
-    },
-    {
-      "imageUrl": "https://i.ytimg.com/vi/F_x0-cRDP3I/maxresdefault.jpg",
-      "title": "Sushi",
-      "price": 299.0,
-      "category": 4,
-    },
-    {
-      "imageUrl": "https://i.ytimg.com/vi/F_x0-cRDP3I/maxresdefault.jpg",
-      "title": "Pizza",
-      "price": 199.0,
-      "category": 4,
-    },
-    {
-      "imageUrl": "https://i.ytimg.com/vi/F_x0-cRDP3I/maxresdefault.jpg",
-      "title": "Fried Chicken",
-      "price": 129.0,
-      "category": 5,
-    },
-    {
-      "imageUrl": "https://i.ytimg.com/vi/F_x0-cRDP3I/maxresdefault.jpg",
-      "title": "Pizza",
-      "price": 199.0,
-      "category": 5,
-    },
-  ];
+  @override
+  _FoodListState createState() => _FoodListState();
+}
+
+class _FoodListState extends State<FoodList> {
+  List<Map<String, dynamic>> foodItems = [];
+  bool isLoading = true;
+  String errorMessage = '';
+
+  @override
+  void initState() {
+    super.initState();
+    fetchFoodItems();
+  }
+
+  Future<void> fetchFoodItems() async {
+    final String apiUrl =
+        "${dotenv.env['API_BASE_URL']}/restaurants/${widget.restaurantId}/menu";
+
+    try {
+      final response = await http.get(Uri.parse(apiUrl));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          foodItems = List<Map<String, dynamic>>.from(data['menu']);
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          errorMessage = 'Error: ${response.statusCode} - ${response.body}';
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Exception: $e';
+        isLoading = false;
+      });
+    }
+  }
 
   void _onAddToCart(String foodName) {
     print("Added $foodName to cart");
@@ -174,36 +151,42 @@ class FoodList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Filter food items based on the selected category
-    final filteredFoodItems = selectedCategory == null
+    final filteredFoodItems = widget.selectedCategory == null
         ? foodItems
         : foodItems
-            .where((food) => food['category'] == selectedCategory)
+            .where((food) => food['category_id'] == widget.selectedCategory)
             .toList();
 
     return Container(
-      height: 365,
-      child: GridView.builder(
-        padding: EdgeInsets.zero,
-        shrinkWrap: true,
-        physics: const BouncingScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 10,
-          childAspectRatio: 0.75,
-        ),
-        itemCount: filteredFoodItems.length,
-        itemBuilder: (context, index) {
-          final food = filteredFoodItems[index];
-          return FoodCard(
-            imageUrl: food["imageUrl"],
-            title: food["title"],
-            price: food["price"],
-            category: food["category"],
-            onAdd: () => _onAddToCart(food["title"]),
-          );
-        },
-      ),
+      height: 360,
+      child: isLoading
+          ? Center(child: CircularProgressIndicator())
+          : errorMessage.isNotEmpty
+              ? Center(child: Text(errorMessage))
+              : GridView.builder(
+                  padding: EdgeInsets.zero,
+                  shrinkWrap: true,
+                  physics: const BouncingScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                    childAspectRatio: 0.75,
+                  ),
+                  itemCount: filteredFoodItems.length,
+                  itemBuilder: (context, index) {
+                    final food = filteredFoodItems[index];
+                    return FoodCard(
+                      imageUrl: food["image_url"],
+                      title: food["name"],
+                      price: (food["price"] is int)
+                          ? (food["price"] as int).toDouble()
+                          : food["price"],
+                      category: food["category_id"],
+                      onAdd: () => _onAddToCart(food["name"]),
+                    );
+                  },
+                ),
     );
   }
 }

@@ -228,8 +228,10 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                                 onCategorySelected),
                                         const SizedBox(height: 10),
                                         FoodList(
-                                            selectedCategory:
-                                                selectedCategory), // Pass the selected category ID
+                                          restaurantId: widget
+                                              .restaurantId, // Pass the restaurant ID
+                                          selectedCategory: selectedCategory,
+                                        ), // Pass the selected category ID
                                       ],
                                     ),
                                   ),

@@ -113,25 +113,29 @@ app.get("/api/categories", async (req, res) => {
 const Menu = require("./models/Menu");
 
 // ✅ Fetch menu items by restaurant ID Route
-app.get("/api/restaurants/:id/menu", async (req, res) => {
-  const restaurantId = req.params.id;
-  console.log(`Fetching menu items for restaurant ID: ${restaurantId}`);
+app.get("/api/restaurants/:restaurantId/menu", async (req, res) => {
+  const { restaurantId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(restaurantId)) {
+    return res.status(400).json({ error: "Invalid restaurant ID format" });
+  }
 
   try {
-    const menuItems = await Menu.find({ restaurant_id: restaurantId });
-    if (!menuItems.length) {
-      console.log(`No menu items found for restaurant ID: ${restaurantId}`);
+    const filteredMenu = await Menu.find({
+      restaurant_id: new mongoose.Types.ObjectId(restaurantId),
+    });
+
+    if (!filteredMenu.length) {
       return res.status(404).json({
         restaurant_id: restaurantId,
-        error: "No menu items found for this restaurant",
+        error: "no menu items found for this restaurant",
       });
     }
-    res.json({ restaurant_id: restaurantId, menu: menuItems });
+
+    res.status(200).json({ menu: filteredMenu });
   } catch (error) {
-    console.error("Error fetching menu items:", error);
-    res
-      .status(500)
-      .json({ restaurant_id: restaurantId, error: "Internal server error" });
+    console.error("❗ Error fetching menu items:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
