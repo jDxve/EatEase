@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:http/http.dart' as http; // Import for HTTP requests
-import 'dart:convert'; // Import for JSON decoding
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:eatease/screens/menudetailes_screen.dart';
 
 class FoodCard extends StatelessWidget {
   final String imageUrl;
@@ -9,6 +10,7 @@ class FoodCard extends StatelessWidget {
   final double price;
   final int category;
   final VoidCallback onAdd;
+  final VoidCallback onTap;
 
   const FoodCard({
     Key? key,
@@ -17,79 +19,83 @@ class FoodCard extends StatelessWidget {
     required this.price,
     required this.category,
     required this.onAdd,
+    required this.onTap,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.only(top: 20, left: 20, right: 20),
-      margin: const EdgeInsets.only(bottom: 10.0, left: 5, right: 5),
-      decoration: BoxDecoration(
-        color: Colors.pink[50],
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Stack(
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 8,
-                      spreadRadius: 2,
-                      offset: const Offset(2, 4),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.only(top: 20, left: 20, right: 20),
+        margin: const EdgeInsets.only(bottom: 10.0, left: 5, right: 5),
+        decoration: BoxDecoration(
+          color: Colors.pink[50],
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 8,
+                        spreadRadius: 2,
+                        offset: const Offset(2, 4),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      imageUrl,
+                      height: 100,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
                     ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    imageUrl,
-                    height: 100,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Text(
-            title,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "₱ $price",
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.red,
+              ],
+            ),
+            const SizedBox(height: 20),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "₱ $price",
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
+                  ),
                 ),
-              ),
-              Container(
-                width: 30,
-                height: 30,
-                decoration: const BoxDecoration(
-                  color: Color.fromARGB(255, 183, 39, 29),
-                  shape: BoxShape.circle,
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: const BoxDecoration(
+                    color: Color.fromARGB(255, 183, 39, 29),
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    onPressed: onAdd,
+                    icon: const Icon(Icons.add, color: Colors.white, size: 16),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
                 ),
-                child: IconButton(
-                  onPressed: onAdd,
-                  icon: const Icon(Icons.add, color: Colors.white, size: 16),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -184,6 +190,25 @@ class _FoodListState extends State<FoodList> {
                           : food["price"],
                       category: food["category_id"],
                       onAdd: () => _onAddToCart(food["name"]),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => MenudetailesScreen(
+                              foodId: food["_id"] is Map
+                                  ? food["_id"]["\$oid"]
+                                  : food["_id"],
+                              title: food["name"],
+                              imageUrl: food["image_url"],
+                              price: (food["price"] is int)
+                                  ? (food["price"] as int).toDouble()
+                                  : food["price"],
+                              description:
+                                  food["description"], // Pass description here
+                            ),
+                          ),
+                        );
+                      },
                     );
                   },
                 ),

@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:eatease/components/scrollable_button.dart';
 import 'package:eatease/components/food_card.dart';
+import 'package:eatease/screens/mycart_screen.dart';
 
 class DetailsScreen extends StatefulWidget {
   final String restaurantId;
@@ -107,7 +108,11 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                 padding: const EdgeInsets.only(right: 30),
                                 child: GestureDetector(
                                   onTap: () {
-                                    // Add your cart action here
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) => MycartScreen()),
+                                    );
                                   },
                                   child: Icon(Icons.shopping_cart_outlined,
                                       color: Colors.white),
