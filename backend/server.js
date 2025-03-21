@@ -134,11 +134,11 @@ app.get("/api/restaurants/:restaurantId/menu", async (req, res) => {
 
     res.status(200).json({ menu: filteredMenu });
   } catch (error) {
-    console.error("❗ Error fetching menu items:", error);
+    console.error("Error fetching menu items:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
 module.exports = app;
-// ✅ Start the server
+// Start the server
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
