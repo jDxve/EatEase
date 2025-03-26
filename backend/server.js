@@ -19,14 +19,14 @@ app.use(cors());
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
-    console.log("✅ MongoDB connected");
+    console.log("MongoDB connected");
   } catch (err) {
-    console.error("❌ MongoDB connection error:", err);
+    console.error("MongoDB connection error:", err);
     process.exit(1); // Exit process on failure
   }
 })();
 
-// ✅ User Registration Route
+//User Registration Route
 app.post("/api/users/register", async (req, res) => {
   try {
     const { fullName, email, phone, password, role_id } = req.body;
@@ -54,25 +54,51 @@ app.post("/api/users/register", async (req, res) => {
   }
 });
 
-// ✅ User Login Route
+//User Login Route
 app.post("/api/users/login", async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
 
-    if (!user) return res.status(400).json({ error: "User not found" });
+    if (!user) return res.status(400).json({ error: "User  not found" });
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ error: "Invalid credentials" });
 
-    res.status(200).json({ message: "Login successful!" });
+    // Return user ID along with the success message
+    res.status(200).json({
+      message: "Login successful!",
+      userId: user._id.toString(), // Return the user ID as a string
+    });
   } catch (error) {
     console.error("Error in login:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
-// ✅ Fetch all restaurants Route
+app.post("/api/users/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) return res.status(400).json({ error: "User  not found" });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(401).json({ error: "Invalid credentials" });
+
+    // Return user ID and customer ID along with the success message
+    res.status(200).json({
+      message: "Login successful!",
+      userId: user._id.toString(), // Return the user ID as a string
+      customerId: user._id.toString(), // Use _id as customerId
+    });
+  } catch (error) {
+    console.error("Error in login:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+//Fetch all restaurants Route
 app.get("/api/restaurants", async (req, res) => {
   try {
     const restaurants = await Restaurant.find({ status: 1 });
@@ -136,6 +162,188 @@ app.get("/api/restaurants/:restaurantId/menu", async (req, res) => {
   } catch (error) {
     console.error("Error fetching menu items:", error);
     res.status(500).json({ error: "Internal server error" });
+  }
+});
+const Order = require("./models/Orders");
+
+// Add orders
+app.post("/api/orders", async (req, res) => {
+  console.log("Incoming order request:", req.body);
+  try {
+    const { customer_id, restaurant_id, items } = req.body;
+
+    // Validate incoming data
+    if (
+      !customer_id ||
+      !restaurant_id ||
+      !Array.isArray(items) ||
+      items.length === 0
+    ) {
+      return res.status(400).json({ error: "Invalid input data" });
+    }
+
+    // Validate ObjectId formats
+    if (
+      !mongoose.Types.ObjectId.isValid(customer_id) ||
+      !mongoose.Types.ObjectId.isValid(restaurant_id)
+    ) {
+      return res
+        .status(400)
+        .json({ error: "Invalid customer or restaurant ID format" });
+    }
+
+    // Find existing order for the customer
+    const existingOrder = await Order.findOne({
+      customer_id: new mongoose.Types.ObjectId(customer_id),
+      order_stage: "add to cart",
+      order_status: 1,
+    });
+
+    if (existingOrder) {
+      // Prevent adding items from different restaurants
+      if (existingOrder.restaurant_id.toString() !== restaurant_id) {
+        return res.status(400).json({
+          error: "You already have an active cart from another restaurant",
+        });
+      }
+
+      // Check for existing item
+      const existingItemIndex = existingOrder.items.findIndex(
+        (item) => item.menu_id.toString() === items[0].menu_id
+      );
+
+      if (existingItemIndex !== -1) {
+        // If the item already exists, update its quantity
+        existingOrder.items[existingItemIndex].quantity += items[0].quantity;
+        existingOrder.total_amount += items[0].price * items[0].quantity;
+        await existingOrder.save();
+
+        return res.status(200).json({
+          message: "Item quantity updated in existing order",
+          order: existingOrder,
+        });
+      }
+
+      // Add new item if it doesn't exist
+      existingOrder.items.push(items[0]);
+      existingOrder.total_amount += items[0].price * items[0].quantity;
+      await existingOrder.save();
+
+      return res.status(200).json({
+        message: "Item added to existing order",
+        order: existingOrder,
+      });
+    }
+
+    // Create new order if no existing order found
+    const newOrder = new Order({
+      customer_id: new mongoose.Types.ObjectId(customer_id),
+      restaurant_id: new mongoose.Types.ObjectId(restaurant_id),
+      items,
+      total_amount: items.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0
+      ),
+      order_status: 1,
+      order_stage: "add to cart",
+      pickup_time: new Date(),
+    });
+
+    const savedOrder = await newOrder.save();
+    res.status(201).json({ message: "Order created", order: savedOrder });
+  } catch (error) {
+    console.error("Order error:", error.message); // Log the error message
+    res.status(500).json({ error: "Server error", details: error.message });
+  }
+});
+//fetch cart
+app.get("/api/orders/:customer_id", async (req, res) => {
+  try {
+    const { customer_id } = req.params;
+
+    // Validate customer_id format
+    if (!mongoose.Types.ObjectId.isValid(customer_id)) {
+      return res.status(400).json({ error: "Invalid customer ID format" });
+    }
+
+    // Find the order for the customer
+    const order = await Order.findOne({
+      customer_id: new mongoose.Types.ObjectId(customer_id),
+      order_stage: "add to cart",
+      order_status: 1,
+    });
+
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    // Format the order response
+    const formattedOrder = {
+      id: order._id,
+      customerId: order.customer_id,
+      restaurantId: order.restaurant_id,
+      items: order.items.map((item) => ({
+        menuId: item.menu_id,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+      })),
+      totalAmount: order.total_amount,
+      orderStatus: order.order_status,
+      orderStage: order.order_stage,
+      pickupTime: order.pickup_time,
+      createdAt: order.created_at,
+    };
+
+    res.status(200).json({ message: "Order found", order: formattedOrder });
+  } catch (error) {
+    console.error("Order error:", error);
+    res.status(500).json({ error: "Server error", details: error.message });
+  }
+});
+app.delete("/api/orders/:customer_id/items/:item_id", async (req, res) => {
+  try {
+    const { customer_id, item_id } = req.params;
+
+    // Validate customer_id format
+    if (
+      !mongoose.Types.ObjectId.isValid(customer_id) ||
+      !mongoose.Types.ObjectId.isValid(item_id)
+    ) {
+      return res.status(400).json({ error: "Invalid ID format" });
+    }
+
+    // Find the order for the customer
+    const order = await Order.findOne({
+      customer_id: new mongoose.Types.ObjectId(customer_id),
+      order_stage: "add to cart",
+      order_status: 1,
+    });
+
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    // Find the item to delete
+    const itemIndex = order.items.findIndex(
+      (item) => item._id.toString() === item_id
+    );
+    if (itemIndex === -1) {
+      return res.status(404).json({ error: "Item not found in order" });
+    }
+
+    // Remove the item from the order
+    const itemPrice =
+      order.items[itemIndex].price * order.items[itemIndex].quantity; // Calculate total price of the item
+    order.items.splice(itemIndex, 1); // Remove the item
+    order.total_amount -= itemPrice; // Update total amount
+
+    await order.save(); // Save the updated order
+
+    res.status(200).json({ message: "Item deleted from order", order });
+  } catch (error) {
+    console.error("Delete order error:", error);
+    res.status(500).json({ error: "Server error", details: error.message });
   }
 });
 
