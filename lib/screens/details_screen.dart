@@ -115,7 +115,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                       context,
                                       MaterialPageRoute(
                                           builder: (context) =>
-                                              MyCartScreen(userId: userId)),
+                                              MyCartScreen(userId: userId, restaurantId: widget.restaurantId, )),
                                     );
                                   },
                                   child: Icon(Icons.shopping_cart_outlined,

@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:eatease/screens/mycart_screen.dart';
 import 'package:intl/intl.dart';
+import 'dart:math';
 
 class MenudetailesScreen extends StatefulWidget {
   final String foodId;
@@ -12,7 +13,7 @@ class MenudetailesScreen extends StatefulWidget {
   final double price;
   final String description;
   final String userId;
-  final String restaurantId;
+  final String restaurantId; // Ensure restaurantId is included
   final String categoryName;
 
   const MenudetailesScreen({
@@ -23,7 +24,7 @@ class MenudetailesScreen extends StatefulWidget {
     required this.price,
     required this.description,
     required this.userId,
-    required this.restaurantId,
+    required this.restaurantId, // Add restaurantId to constructor
     required this.categoryName,
   }) : super(key: key);
 
@@ -49,7 +50,21 @@ class _MenudetailesScreenState extends State<MenudetailesScreen> {
       });
     }
   }
+String generateOrderId(){
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  final random = Random();
+  String orderId = '';
 
+  // Generate a random string of 6 characters
+  for (int i = 0; i < 6; i++) {
+    orderId += characters[random.nextInt(characters.length)];
+  }
+
+  // Append the current timestamp
+  orderId += DateTime.now().millisecondsSinceEpoch.toString();
+
+  return orderId; // Returns a unique order ID
+}
   void _addToCart() async {
     // Check if the item is already in the cart
     if (cartQuantities.containsKey(widget.foodId)) {
@@ -70,11 +85,14 @@ class _MenudetailesScreenState extends State<MenudetailesScreen> {
     // Create the order payload
     final orderPayload = {
       "customer_id": widget.userId,
-      "restaurant_id": widget.restaurantId,
+      "restaurant_id":
+          widget.restaurantId, 
+          "order_id": generateOrderId(), /// Include restaurantId in the payload
       "items": [orderItem],
       "order_status": 1,
       "order_stage": "add to cart",
       "pickup_time": DateTime.now().toIso8601String(),
+      // No need to include order_id here, it will be generated on the server
     };
 
     // Log the order payload for debugging
@@ -100,8 +118,8 @@ class _MenudetailesScreenState extends State<MenudetailesScreen> {
     } else if (response.statusCode == 400) {
       // If the server returns a warning about existing items
       final responseBody = json.decode(response.body);
-      if (responseBody['warning'] != null) {
-        _showCircularNotification(responseBody['warning'], Colors.orange);
+      if (responseBody['error'] != null) {
+        _showCircularNotification(responseBody['error'], Colors.orange);
       }
     } else {
       // Handle other response statuses
@@ -184,7 +202,12 @@ class _MenudetailesScreenState extends State<MenudetailesScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => MyCartScreen(userId: userId)),
+                          builder: (context) => MyCartScreen(
+                            userId: userId,
+                            restaurantId:
+                                widget.restaurantId, // Pass restaurantId here
+                          ),
+                        ),
                       );
                     },
                     child:

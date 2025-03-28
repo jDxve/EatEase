@@ -165,7 +165,6 @@ app.get("/api/restaurants/:restaurantId/menu", async (req, res) => {
   }
 });
 const Order = require("./models/Orders");
-
 // Add orders
 app.post("/api/orders", async (req, res) => {
   console.log("Incoming order request:", req.body);
@@ -224,9 +223,11 @@ app.post("/api/orders", async (req, res) => {
     }
 
     // Create new order if no existing order found
+    const newOrderId = await generateOrderId();
     const newOrder = new Order({
       customer_id: new mongoose.Types.ObjectId(customer_id),
       restaurant_id: new mongoose.Types.ObjectId(restaurant_id),
+      order_id: newOrderId,
       items,
       total_amount: items.reduce(
         (sum, item) => sum + item.price * item.quantity,
@@ -258,7 +259,7 @@ app.get("/api/orders/:customer_id", async (req, res) => {
     // Find the order for the customer
     const order = await Order.findOne({
       customer_id: new mongoose.Types.ObjectId(customer_id),
-      order_stage: "add to cart",
+      order_stage: { $in: ["add to cart", "order checkout"] }, // Check for both stages
       order_status: 1,
     });
 
@@ -325,8 +326,8 @@ app.delete("/api/orders/:customer_id/items/:item_id", async (req, res) => {
     // Remove the item from the order
     const itemPrice =
       order.items[itemIndex].price * order.items[itemIndex].quantity; // Calculate total price of the item
-    order.items.splice(itemIndex, 1); // Remove the item
-    order.total_amount -= itemPrice; // Update total amount
+    order.items.splice(itemIndex, 1);
+    order.total_amount -= itemPrice;
 
     await order.save(); // Save the updated order
 
@@ -339,7 +340,7 @@ app.delete("/api/orders/:customer_id/items/:item_id", async (req, res) => {
 // Update item quantity in an existing order
 app.put("/api/orders/:customerId/items/:itemId", async (req, res) => {
   const { customerId, itemId } = req.params;
-  const { quantity } = req.body; // Expecting quantity in the request body
+  const { quantity } = req.body;
 
   try {
     const order = await Order.findOne({
@@ -381,7 +382,7 @@ app.put("/api/orders/:customerId", async (req, res) => {
   try {
     const order = await Order.findOne({
       customer_id: new mongoose.Types.ObjectId(customerId),
-      order_status: 1, // Only check for active orders
+      order_status: 1,
     });
 
     if (!order) {

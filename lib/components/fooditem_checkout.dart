@@ -17,7 +17,7 @@ final List<Map<String, dynamic>> checkout_food = [
     'name': 'Spicy Wings',
     'imageUrl': 'assets/images/restaurant1.png',
     'price': 250.0,
-    'quantity': 2,
+    'quantity': 2,  
   },
   {
     'name': 'Spicy Wings',

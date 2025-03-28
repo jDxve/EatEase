@@ -5,15 +5,19 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/intl.dart';
-import 'package:eatease/components/step_indicator.dart'; // Corrected import name
+import 'package:eatease/components/step_indicator.dart';
 
-// Currency format
 final currencyFormat = NumberFormat.currency(locale: 'en_PH', symbol: '₱');
 
 class MyCartScreen extends StatefulWidget {
   final String? userId;
+  final String restaurantId;
 
-  const MyCartScreen({super.key, this.userId});
+  const MyCartScreen({
+    super.key,
+    this.userId,
+    required this.restaurantId,
+  });
 
   @override
   _MyCartScreenState createState() => _MyCartScreenState();
@@ -22,8 +26,8 @@ class MyCartScreen extends StatefulWidget {
 class _MyCartScreenState extends State<MyCartScreen> {
   Map<String, dynamic>? order;
   bool isLoading = true;
-  double totalAmount = 0.0; // Track total amount
-  final int currentStep = 2; // Define the current step (2 for Cart)
+  double totalAmount = 0.0;
+  final int currentStep = 2;
 
   @override
   void initState() {
@@ -37,11 +41,11 @@ class _MyCartScreenState extends State<MyCartScreen> {
       setState(() {
         order = fetchedOrder;
         isLoading = false;
-        totalAmount = _calculateTotalAmount(); // Initialize total amount
+        totalAmount = _calculateTotalAmount();
       });
     } else {
       setState(() {
-        isLoading = false; // No userId provided
+        isLoading = false;
       });
     }
   }
@@ -51,7 +55,7 @@ class _MyCartScreenState extends State<MyCartScreen> {
       final response = await http
           .get(Uri.parse('${dotenv.env['API_BASE_URL']}/orders/$customerId'));
       if (response.statusCode == 200) {
-        return json.decode(response.body)['order']; // Access the order object
+        return json.decode(response.body)['order'];
       } else {
         print('Failed to load order: ${response.body}');
       }
@@ -77,12 +81,39 @@ class _MyCartScreenState extends State<MyCartScreen> {
 
       if (response.statusCode == 200) {
         print("Item deleted successfully");
-        _loadOrder(); // Reload the order after deletion
+        setState(() {
+          order!['items'].removeWhere((item) => item['id'] == itemId);
+          totalAmount = _calculateTotalAmount();
+        });
       } else {
         print('Failed to delete item: ${response.body}');
       }
     } catch (e) {
       print('Error deleting item: $e');
+    }
+  }
+
+  Future<void> _updateItemQuantity(String itemId, int newQuantity) async {
+    try {
+      final response = await http.put(
+        Uri.parse(
+            '${dotenv.env['API_BASE_URL']}/orders/${widget.userId}/items/$itemId'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'quantity': newQuantity}),
+      );
+
+      if (response.statusCode == 200) {
+        print('Item quantity updated successfully');
+        // Optionally, you can update the local order state if needed
+        setState(() {
+          // Update the total amount after successful update
+          totalAmount = _calculateTotalAmount();
+        });
+      } else {
+        print('Failed to update item quantity: ${response.body}');
+      }
+    } catch (e) {
+      print('Error updating item quantity: $e');
     }
   }
 
@@ -92,9 +123,14 @@ class _MyCartScreenState extends State<MyCartScreen> {
       return;
     }
 
-    // Prepare the order data to send to the backend
     final orderData = {
-      'order_stage': 'order checkout', // Update the order stage here
+      'order_stage': 'order checkout',
+      'items': order!['items'].map((item) {
+        return {
+          'id': item['id'],
+          'quantity': item['quantity'],
+        };
+      }).toList(),
     };
 
     try {
@@ -110,7 +146,8 @@ class _MyCartScreenState extends State<MyCartScreen> {
           context,
           MaterialPageRoute(
             builder: (context) => CheckoutScreen(
-              userId: widget.userId, // Keep the total amount as is
+              userId: widget.userId,
+              restaurantId: widget.restaurantId,
             ),
           ),
         );
@@ -219,12 +256,13 @@ class _MyCartScreenState extends State<MyCartScreen> {
                                           item['quantity'] = newQuantity;
                                           totalAmount = _calculateTotalAmount();
                                         });
+                                        _updateItemQuantity(item['id'],
+                                            newQuantity); // Update quantity on the server
                                       },
                                       onDelete: () {
                                         _deleteItem(item['id'] ?? '');
                                       },
-                                      userId: widget.userId ??
-                                          '', // Pass userId here
+                                      userId: widget.userId ?? '',
                                     );
                                   },
                                 ),
