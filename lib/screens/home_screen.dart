@@ -6,7 +6,9 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'details_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final String userId; // Add a userId parameter
+
+  const HomeScreen({super.key, required this.userId}); // Update the constructor
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
@@ -165,7 +167,7 @@ class _HomeScreenState extends State<HomeScreen> {
     } else {
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (context) => DetailsScreen(restaurantId: restaurantId),
+          builder: (context) => DetailsScreen(restaurantId: restaurantId, userId: widget.userId,),
         ),
       );
     }
@@ -195,6 +197,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
+              
               const SizedBox(height: 20),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),

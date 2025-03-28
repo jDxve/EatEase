@@ -5,7 +5,9 @@ import 'package:eatease/screens/notifications_screen.dart';
 import 'package:eatease/screens/profile_screen.dart';
 
 class BottomNav extends StatefulWidget {
-  const BottomNav({super.key});
+  final String userId; // Add a userId parameter
+
+  const BottomNav({super.key, required this.userId}); // Update the constructor
 
   @override
   State<BottomNav> createState() => _BottomNavState();
@@ -14,12 +16,12 @@ class BottomNav extends StatefulWidget {
 class _BottomNavState extends State<BottomNav> {
   int _selectedIndex = 0;
 
-  static final List<Widget> _widgetOptions = <Widget>[
-    const HomeScreen(),
-    const ChatScreen(),
-    const NotificationsScreen(),
-    const ProfileScreen(),
-  ];
+  static List<Widget> _widgetOptions(String userId) => <Widget>[
+        HomeScreen(userId: userId), // Pass the userId to HomeScreen
+        const ChatScreen(),
+        const NotificationsScreen(),
+        const ProfileScreen(),
+      ];
 
   void _onItemTapped(int index) {
     setState(() {
@@ -32,7 +34,7 @@ class _BottomNavState extends State<BottomNav> {
     return Scaffold(
       body: IndexedStack(
         index: _selectedIndex,
-        children: _widgetOptions,
+        children: _widgetOptions(widget.userId), // Pass the userId here
       ),
       bottomNavigationBar: BottomNavigationBar(
         items: <BottomNavigationBarItem>[

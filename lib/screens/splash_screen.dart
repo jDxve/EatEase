@@ -46,11 +46,12 @@ class _SplashScreenState extends State<SplashScreen>
     bool? rememberMe = prefs.getBool('remember_me');
     String? savedEmail = prefs.getString('email');
     String? savedPassword = prefs.getString('password');
+    String? userId = prefs.getString('userId'); // Retrieve userId
 
     if (rememberMe == true && savedEmail != null && savedPassword != null) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => BottomNav()),
+        MaterialPageRoute(builder: (context) => BottomNav(userId: userId ?? '')), // Pass userId to BottomNav
       );
     } else {
       Navigator.pushReplacement(

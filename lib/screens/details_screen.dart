@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'dart:async';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:eatease/components/scrollable_button.dart';
 import 'package:eatease/components/food_card.dart';
 import 'package:eatease/screens/mycart_screen.dart';
 
 class DetailsScreen extends StatefulWidget {
   final String restaurantId;
+  final String userId; // Add userId parameter
 
-  // Constructor to accept the restaurant ID
-  DetailsScreen({required this.restaurantId});
+  // Constructor to accept the restaurant ID and user ID
+  DetailsScreen({required this.restaurantId, required this.userId});
 
   @override
   _DetailsScreenState createState() => _DetailsScreenState();
@@ -22,6 +22,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
   bool isLoading = true;
   String errorMessage = '';
   int? selectedCategory;
+  String successMessage = ''; // State variable for success message
 
   @override
   void initState() {
@@ -41,6 +42,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
           restaurantDetails = json.decode(response.body);
           isLoading = false;
         });
+        print('User  ID: ${widget.userId}'); // Print the user ID
       } else {
         setState(() {
           errorMessage = 'Error: ${response.statusCode} - ${response.body}';
@@ -108,10 +110,12 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                 padding: const EdgeInsets.only(right: 30),
                                 child: GestureDetector(
                                   onTap: () {
+                                    final userId = widget.userId;
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                          builder: (context) => MycartScreen()),
+                                          builder: (context) =>
+                                              MyCartScreen(userId: userId)),
                                     );
                                   },
                                   child: Icon(Icons.shopping_cart_outlined,
@@ -226,17 +230,30 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                                 '(${restaurantDetails!['rating_count']?.toString() ?? '0'})')
                                           ],
                                         ),
-                                        // Call the scrollable button widget and pass the onCategorySelected callback
+                                        // Display the success message above the FoodList
+                                        if (successMessage.isNotEmpty)
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 8.0),
+                                            child: Text(
+                                              successMessage,
+                                              style: TextStyle(
+                                                color: Colors.pink,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
                                         const SizedBox(height: 10),
                                         ScrollableButtons(
                                             onCategorySelected:
                                                 onCategorySelected),
                                         const SizedBox(height: 10),
                                         FoodList(
-                                          restaurantId: widget
-                                              .restaurantId, // Pass the restaurant ID
+                                          restaurantId: widget.restaurantId,
+                                          userId: widget
+                                              .userId, // Pass the userId here
                                           selectedCategory: selectedCategory,
-                                        ), // Pass the selected category ID
+                                        ) // Pass the selected category ID
                                       ],
                                     ),
                                   ),

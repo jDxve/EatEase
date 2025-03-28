@@ -14,6 +14,7 @@ const orderSchema = new mongoose.Schema({
   },
   items: [
     {
+      _id: { type: mongoose.Schema.Types.ObjectId, auto: true },
       menu_id: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,

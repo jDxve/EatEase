@@ -102,11 +102,16 @@ class FoodCard extends StatelessWidget {
 }
 
 class FoodList extends StatefulWidget {
+  final String userId;
   final String restaurantId;
   final int? selectedCategory;
 
-  FoodList({Key? key, required this.restaurantId, this.selectedCategory})
-      : super(key: key);
+  const FoodList({
+    Key? key,
+    required this.restaurantId,
+    this.selectedCategory,
+    required this.userId,
+  }) : super(key: key);
 
   @override
   _FoodListState createState() => _FoodListState();
@@ -150,10 +155,6 @@ class _FoodListState extends State<FoodList> {
     }
   }
 
-  void _onAddToCart(String foodName) {
-    print("Added $foodName to cart");
-  }
-
   @override
   Widget build(BuildContext context) {
     // Filter food items based on the selected category
@@ -189,7 +190,27 @@ class _FoodListState extends State<FoodList> {
                           ? (food["price"] as int).toDouble()
                           : food["price"],
                       category: food["category_id"],
-                      onAdd: () => _onAddToCart(food["name"]),
+                      onAdd: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => MenudetailesScreen(
+                              foodId: food["_id"] is Map
+                                  ? food["_id"]["\$oid"]
+                                  : food["_id"],
+                              title: food["name"],
+                              imageUrl: food["image_url"],
+                              price: (food["price"] is int)
+                                  ? (food["price"] as int).toDouble()
+                                  : food["price"],
+                              description: food["description"],
+                              userId: widget.userId,
+                              restaurantId: widget.restaurantId,
+                              categoryName: food['category_name'] ?? 'All',
+                            ),
+                          ),
+                        );
+                      },
                       onTap: () {
                         Navigator.push(
                           context,
@@ -203,8 +224,11 @@ class _FoodListState extends State<FoodList> {
                               price: (food["price"] is int)
                                   ? (food["price"] as int).toDouble()
                                   : food["price"],
-                              description:
-                                  food["description"], // Pass description here
+                              description: food["description"],
+                              userId: widget
+                                  .userId, // Pass userId to MenudetailesScreen
+                              restaurantId: widget.restaurantId,
+                              categoryName: food['category_name'] ?? 'All',
                             ),
                           ),
                         );

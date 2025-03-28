@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'package:eatease/screens/mycart_screen.dart';
 import 'package:intl/intl.dart';
 
@@ -8,22 +11,30 @@ class MenudetailesScreen extends StatefulWidget {
   final String imageUrl;
   final double price;
   final String description;
+  final String userId;
+  final String restaurantId;
+  final String categoryName;
 
   const MenudetailesScreen({
-    super.key,
+    Key? key,
     required this.foodId,
     required this.title,
     required this.imageUrl,
     required this.price,
     required this.description,
-  });
+    required this.userId,
+    required this.restaurantId,
+    required this.categoryName,
+  }) : super(key: key);
 
   @override
   _MenudetailesScreenState createState() => _MenudetailesScreenState();
 }
 
 class _MenudetailesScreenState extends State<MenudetailesScreen> {
-  int quantity = 0;
+  int quantity = 1; // Set default quantity to 1
+  Map<String, int> cartQuantities =
+      {}; // To keep track of quantities in the cart
 
   void _increaseQuantity() {
     setState(() {
@@ -32,11 +43,107 @@ class _MenudetailesScreenState extends State<MenudetailesScreen> {
   }
 
   void _decreaseQuantity() {
-    if (quantity > 0) {
+    if (quantity > 1) {
       setState(() {
         quantity--;
       });
     }
+  }
+
+  void _addToCart() async {
+    // Check if the item is already in the cart
+    if (cartQuantities.containsKey(widget.foodId)) {
+      // If it exists, show a circular notification and exit the method
+      _showCircularNotification(
+          "Item is already in the cart.", Colors.redAccent);
+      return; // Exit the method
+    }
+
+    // Create the order item
+    final orderItem = {
+      "menu_id": widget.foodId,
+      "name": widget.title,
+      "quantity": quantity, // Use the current quantity
+      "price": widget.price,
+    };
+
+    // Create the order payload
+    final orderPayload = {
+      "customer_id": widget.userId,
+      "restaurant_id": widget.restaurantId,
+      "items": [orderItem],
+      "order_status": 1,
+      "order_stage": "add to cart",
+      "pickup_time": DateTime.now().toIso8601String(),
+    };
+
+    // Log the order payload for debugging
+    print("Order Payload: $orderPayload");
+
+    // Send the POST request to create the order
+    final response = await http.post(
+      Uri.parse("${dotenv.env['API_BASE_URL']}/orders"),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: json.encode(orderPayload),
+    );
+
+    // Check the response status
+    if (response.statusCode == 200) {
+      // If the item was added successfully, update the cart quantities
+      cartQuantities[widget.foodId] =
+          (cartQuantities[widget.foodId] ?? 0) + quantity;
+
+      // Show a success notification
+      _showCircularNotification("Item added to cart!", Colors.green);
+    } else if (response.statusCode == 400) {
+      // If the server returns a warning about existing items
+      final responseBody = json.decode(response.body);
+      if (responseBody['warning'] != null) {
+        _showCircularNotification(responseBody['warning'], Colors.orange);
+      }
+    } else {
+      // Handle other response statuses
+      _showCircularNotification("Failed to add item to cart.", Colors.red);
+    }
+  }
+
+  void _showCircularNotification(String message, Color backgroundColor) {
+    OverlayEntry overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: 60, // Adjust this value to position the notification
+        left: MediaQuery.of(context).size.width * 0.1, // Center horizontally
+        right: MediaQuery.of(context).size.width * 0.1,
+        child: Material(
+          elevation: 4,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            width: 10,
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+            decoration: BoxDecoration(
+              color: backgroundColor,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    Overlay.of(context)?.insert(overlayEntry);
+
+    // Remove the notification after a delay
+    Future.delayed(const Duration(seconds: 2), () {
+      overlayEntry.remove();
+    });
   }
 
   @override
@@ -73,13 +180,15 @@ class _MenudetailesScreenState extends State<MenudetailesScreen> {
                   padding: const EdgeInsets.only(right: 30),
                   child: GestureDetector(
                     onTap: () {
+                      final userId = widget.userId;
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => MycartScreen()),
+                        MaterialPageRoute(
+                            builder: (context) => MyCartScreen(userId: userId)),
                       );
                     },
-                    child: const Icon(Icons.shopping_cart_outlined,
-                        color: Colors.white),
+                    child:
+                        Icon(Icons.shopping_cart_outlined, color: Colors.white),
                   ),
                 ),
               ],
@@ -116,7 +225,7 @@ class _MenudetailesScreenState extends State<MenudetailesScreen> {
                     ),
                   ),
                   Text(
-                    '₱ ${widget.price}',
+                    currencyFormat.format(widget.price),
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
@@ -126,13 +235,13 @@ class _MenudetailesScreenState extends State<MenudetailesScreen> {
                 ],
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.only(left: 30),
+            Padding(
+              padding: const EdgeInsets.only(left: 30),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Rice Meal',
-                  style: TextStyle(
+                  widget.categoryName,
+                  style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -168,14 +277,6 @@ class _MenudetailesScreenState extends State<MenudetailesScreen> {
                             Icons.remove,
                             color: Color.fromARGB(255, 219, 6, 6),
                             size: 14,
-                            shadows: [
-                              Shadow(
-                                color: Colors
-                                    .black,
-                                blurRadius: 2,
-                                offset: Offset(0, 0.5),
-                              ),
-                            ],
                           ),
                         ),
                       ),
@@ -193,27 +294,18 @@ class _MenudetailesScreenState extends State<MenudetailesScreen> {
                       GestureDetector(
                         onTap: _increaseQuantity,
                         child: Container(
-                            width: 22,
-                            height: 22,
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.add,
-                              color: Color.fromARGB(255, 219, 6, 6),
-                              size:
-                                  14, // Slightly increased size for more visibility
-                              shadows: [
-                                Shadow(
-                                  color: Colors
-                                      .black, // Dark outline to enhance boldness
-                                  blurRadius: 2,
-                                  offset: Offset(0,
-                                      0.5), // Position the shadow to create depth
-                                ),
-                              ],
-                            )),
+                          width: 22,
+                          height: 22,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.add,
+                            color: Color.fromARGB(255, 219, 6, 6),
+                            size: 14,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -262,11 +354,9 @@ class _MenudetailesScreenState extends State<MenudetailesScreen> {
                               ),
                               padding: const EdgeInsets.symmetric(vertical: 15),
                             ),
-                            onPressed: () {
-                              // Add your add to cart logic here
-                            },
+                            onPressed: _addToCart,
                             child: Text(
-                              'Add to Cart (${currencyFormat.format(widget.price * quantity)})',
+                              'Add to Cart (${currencyFormat.format(widget.price * (cartQuantities[widget.foodId] ?? 0 + quantity))})',
                               style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold),

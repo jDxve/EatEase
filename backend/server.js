@@ -200,27 +200,15 @@ app.post("/api/orders", async (req, res) => {
     });
 
     if (existingOrder) {
-      // Prevent adding items from different restaurants
-      if (existingOrder.restaurant_id.toString() !== restaurant_id) {
-        return res.status(400).json({
-          error: "You already have an active cart from another restaurant",
-        });
-      }
-
       // Check for existing item
       const existingItemIndex = existingOrder.items.findIndex(
         (item) => item.menu_id.toString() === items[0].menu_id
       );
 
       if (existingItemIndex !== -1) {
-        // If the item already exists, update its quantity
-        existingOrder.items[existingItemIndex].quantity += items[0].quantity;
-        existingOrder.total_amount += items[0].price * items[0].quantity;
-        await existingOrder.save();
-
-        return res.status(200).json({
-          message: "Item quantity updated in existing order",
-          order: existingOrder,
+        // If the item already exists, return an error message
+        return res.status(400).json({
+          error: "Item is already in the cart.",
         });
       }
 
@@ -256,7 +244,8 @@ app.post("/api/orders", async (req, res) => {
     res.status(500).json({ error: "Server error", details: error.message });
   }
 });
-//fetch cart
+// Fetch cart
+// Fetch cart
 app.get("/api/orders/:customer_id", async (req, res) => {
   try {
     const { customer_id } = req.params;
@@ -283,6 +272,7 @@ app.get("/api/orders/:customer_id", async (req, res) => {
       customerId: order.customer_id,
       restaurantId: order.restaurant_id,
       items: order.items.map((item) => ({
+        id: item._id, // Include the item ID
         menuId: item.menu_id,
         name: item.name,
         quantity: item.quantity,
@@ -346,7 +336,44 @@ app.delete("/api/orders/:customer_id/items/:item_id", async (req, res) => {
     res.status(500).json({ error: "Server error", details: error.message });
   }
 });
+// Update item quantity in an existing order
+// Update item quantity in an existing order
+app.put("/api/orders/:customerId/items/:itemId", async (req, res) => {
+  const { customerId, itemId } = req.params;
+  const { quantity } = req.body; // Expecting quantity in the request body
 
+  try {
+    const order = await Order.findOne({
+      customer_id: new mongoose.Types.ObjectId(customerId),
+      order_stage: "add to cart",
+      order_status: 1,
+    });
+
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    const itemIndex = order.items.findIndex(
+      (item) => item._id.toString() === itemId
+    );
+    if (itemIndex === -1) {
+      return res.status(404).json({ error: "Item not found in order" });
+    }
+
+    // Update the quantity
+    order.items[itemIndex].quantity = quantity;
+    order.total_amount = order.items.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
+    await order.save();
+
+    res.status(200).json({ message: "Item quantity updated", order });
+  } catch (error) {
+    console.error("Update item error:", error.message);
+    res.status(500).json({ error: "Server error", details: error.message });
+  }
+});
 module.exports = app;
 // Start the server
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

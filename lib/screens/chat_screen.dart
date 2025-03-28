@@ -9,14 +9,14 @@ class ChatScreen extends StatelessWidget {
       body: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('assets/images/bg.png'), // Path to your background image
-            fit: BoxFit.cover, // Cover the entire screen
+            image: AssetImage('assets/images/bg.png'), 
+            fit: BoxFit.cover,
           ),
         ),
         child: const Center(
           child: Text(
             'Chat Screen',
-            style: TextStyle(fontSize: 24, color: Colors.white), // Change text color for visibility
+            style: TextStyle(fontSize: 24, color: Colors.white), 
           ),
         ),
       ),

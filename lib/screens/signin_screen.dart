@@ -306,56 +306,61 @@ class _SignInScreenState extends State<SignInScreen> {
       ),
     );
   }
+Future<void> _loginUser () async {
+  String email = _emailController.text;
+  String password = _passwordController.text;
 
-  Future<void> _loginUser() async {
-    String email = _emailController.text;
-    String password = _passwordController.text;
+  // Clear previous error message
+  setState(() {
+    _errorMessage = null;
+  });
 
-    // Clear previous error message
-    setState(() {
-      _errorMessage = null;
-    });
+  try {
+    var response = await http.post(
+      Uri.parse(apiUrl),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "email": email,
+        "password": password,
+      }),
+    );
 
-    try {
-      var response = await http.post(
-        Uri.parse(apiUrl),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "email": email,
-          "password": password,
-        }),
-      );
+    print('Response status: ${response.statusCode}');
+    print('Response body: ${response.body}');
 
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      String userId = data['userId']; // Get user ID from response
 
-      if (response.statusCode == 200) {
-        // Save credentials if "Remember Me" is checked
-        if (_rememberMe) {
-          _saveCredentials(email, password);
-        } else {
-          _clearCredentials();
-        }
+      // Save userId in SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      prefs.setString('userId', userId);
 
-        // Navigate to HomeScreen on successful login
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => BottomNav()),
-        );
+      // Save credentials if "Remember Me" is checked
+      if (_rememberMe) {
+        _saveCredentials(email, password);
       } else {
-        // Handle error response
-        setState(() {
-          _errorMessage =
-              'Login failed. Please try again.'; // Set error message
-        });
+        _clearCredentials();
       }
-    } catch (e) {
-      // Handle exceptions
+
+      // Navigate to BottomNav on successful login
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => BottomNav(userId: userId)), // Pass userId to BottomNav
+      );
+    } else {
+      // Handle error response
       setState(() {
-        _errorMessage = 'An error occurred: $e';
+        _errorMessage = 'Login failed. Please try again.'; // Set error message
       });
     }
+  } catch (e) {
+    // Handle exceptions
+    setState(() {
+      _errorMessage = 'An error occurred: $e';
+    });
   }
+}
 
   Widget _buildSignupTextButton() {
     return Row(
