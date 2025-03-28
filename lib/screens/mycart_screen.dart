@@ -86,26 +86,15 @@ class _MyCartScreenState extends State<MyCartScreen> {
     }
   }
 
-  Future<void> _checkout() async {
+  void _checkout() async {
     if (order == null || order!['items'].isEmpty) {
       print('No items in the cart to checkout.');
       return;
     }
 
     // Prepare the order data to send to the backend
-    final updatedItems = order!['items'].map((item) {
-      return {
-        'menu_id': item['menuId'],
-        'quantity': item['quantity'], // Ensure this is the updated quantity
-        'price': item['price'],
-      };
-    }).toList();
-
     final orderData = {
-      'customer_id': widget.userId,
-      'restaurant_id':
-          order!['restaurantId'], // Ensure you have the restaurant ID
-      'items': updatedItems,
+      'order_stage': 'order checkout', // Update the order stage here
     };
 
     try {
@@ -116,16 +105,17 @@ class _MyCartScreenState extends State<MyCartScreen> {
       );
 
       if (response.statusCode == 200) {
-        print('Order updated successfully');
-        // Navigate to the checkout screen or show a success message
+        print('Order stage updated successfully');
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => CheckoutScreen(userId: widget.userId),
+            builder: (context) => CheckoutScreen(
+              userId: widget.userId, // Keep the total amount as is
+            ),
           ),
         );
       } else {
-        print('Failed to update order: ${response.body}');
+        print('Failed to update order stage: ${response.body}');
       }
     } catch (e) {
       print('Error during checkout: $e');
@@ -264,7 +254,7 @@ class _MyCartScreenState extends State<MyCartScreen> {
                                         ),
                                         onPressed: _checkout,
                                         child: const Text(
-                                          'Place Order',
+                                          'Check Out',
                                           style: TextStyle(
                                             color: Colors.white,
                                             fontSize: 16,

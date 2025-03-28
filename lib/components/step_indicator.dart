@@ -23,8 +23,8 @@ class StepIndicator extends StatelessWidget {
   }
 
   Widget _buildStep(IconData icon, {required int stepNumber}) {
-    final bool isActive = currentStep == stepNumber;
-    final Color stepColor = stepNumber == 1 || isActive ? Colors.red : Colors.grey[400]!;
+    final bool isActive = currentStep >= stepNumber; // Updated condition
+    final Color stepColor = isActive ? Colors.red : Colors.grey[400]!;
 
     return Container(
       width: 25,
@@ -36,7 +36,7 @@ class StepIndicator extends StatelessWidget {
       child: Center(
         child: Icon(
           icon,
-          color:Colors.white,
+          color: Colors.white,
           size: 17,
         ),
       ),

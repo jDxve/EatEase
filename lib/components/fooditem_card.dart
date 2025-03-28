@@ -50,129 +50,129 @@ class _FoodItemCardState extends State<FoodItemCard> {
   }
 
   @override
-Widget build(BuildContext context) {
-  final foodItem = widget.foodItem;
-  double price = (foodItem['price'] as num?)?.toDouble() ?? 0.0;
-  double totalPrice = price * quantity;
+  Widget build(BuildContext context) {
+    final foodItem = widget.foodItem;
+    double price = (foodItem['price'] as num?)?.toDouble() ?? 0.0;
+    double totalPrice = price * quantity;
 
-  return Card(
-    color: Colors.pink[50],
-    elevation: 0,
-    margin: const EdgeInsets.all(8),
-    child: Padding(
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.asset(
-              foodItem['imageUrl'] ?? 'assets/images/restaurant1.png',
-              height: 60,
-              width: 80,
-              fit: BoxFit.cover,
+    return Card(
+      color: Colors.pink[50],
+      elevation: 0,
+      margin: const EdgeInsets.all(8),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                foodItem['imageUrl'] ?? 'assets/images/restaurant1.png',
+                height: 60,
+                width: 80,
+                fit: BoxFit.cover,
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      foodItem['name'] ?? 'Unknown',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    Container(
-                      height: 28,
-                      width: 85,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.0),
-                        borderRadius: BorderRadius.circular(30),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        foodItem['name'] ?? 'Unknown',
+                        style: Theme.of(context).textTheme.titleMedium,
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          GestureDetector(
-                            onTap: _decrementQuantity,
-                            child: Container(
-                              width: 22,
-                              height: 22,
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                              ),
-                              child: quantity > 1
-                                  ? const Icon(
-                                      Icons.remove,
-                                      color: Color.fromARGB(255, 219, 6, 6),
-                                      size: 14,
-                                    )
-                                  : const Icon(
-                                      Icons.delete,
-                                      color: Color.fromARGB(255, 219, 6, 6),
-                                      size: 14,
-                                    ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 10),
-                            child: Text(
-                              '$quantity',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.red,
+                      Container(
+                        height: 28,
+                        width: 85,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.0),
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            GestureDetector(
+                              onTap: _decrementQuantity,
+                              child: Container(
+                                width: 22,
+                                height: 22,
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: quantity > 1
+                                    ? const Icon(
+                                        Icons.remove,
+                                        color: Color.fromARGB(255, 219, 6, 6),
+                                        size: 14,
+                                      )
+                                    : const Icon(
+                                        Icons.delete,
+                                        color: Color.fromARGB(255, 219, 6, 6),
+                                        size: 14,
+                                      ),
                               ),
                             ),
-                          ),
-                          GestureDetector(
-                            onTap: _incrementQuantity,
-                            child: Container(
-                              width: 22,
-                              height: 22,
-                              decoration: const BoxDecoration(
-                                color: Colors.red,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.add,
-                                color: Colors.white,
-                                size: 14,
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 10),
+                              child: Text(
+                                '$quantity',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.red,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                            GestureDetector(
+                              onTap: _incrementQuantity,
+                              child: Container(
+                                width: 22,
+                                height: 22,
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.add,
+                                  color: Colors.white,
+                                  size: 14,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '${currencyFormat.format(price)}',
-                      style: const TextStyle(
-                        color: Color.fromARGB(255, 96, 95, 95),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '${currencyFormat.format(price)}',
+                        style: const TextStyle(
+                          color: Color.fromARGB(255, 96, 95, 95),
+                        ),
                       ),
-                    ),
-                    Text(
-                      '${currencyFormat.format(totalPrice)}',
-                      style: const TextStyle(
-                          color: Colors.red, fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-              ],
+                      Text(
+                        '${currencyFormat.format(totalPrice)}',
+                        style: const TextStyle(
+                            color: Colors.red, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
-}
-
+    );
+  }
 }

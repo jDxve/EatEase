@@ -337,7 +337,6 @@ app.delete("/api/orders/:customer_id/items/:item_id", async (req, res) => {
   }
 });
 // Update item quantity in an existing order
-// Update item quantity in an existing order
 app.put("/api/orders/:customerId/items/:itemId", async (req, res) => {
   const { customerId, itemId } = req.params;
   const { quantity } = req.body; // Expecting quantity in the request body
@@ -371,6 +370,36 @@ app.put("/api/orders/:customerId/items/:itemId", async (req, res) => {
     res.status(200).json({ message: "Item quantity updated", order });
   } catch (error) {
     console.error("Update item error:", error.message);
+    res.status(500).json({ error: "Server error", details: error.message });
+  }
+});
+//update order stage
+app.put("/api/orders/:customerId", async (req, res) => {
+  const { customerId } = req.params;
+  const { order_stage } = req.body; // Expecting order_stage in the request body
+
+  try {
+    const order = await Order.findOne({
+      customer_id: new mongoose.Types.ObjectId(customerId),
+      order_status: 1, // Only check for active orders
+    });
+
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    // Update the order stage
+    if (order_stage) {
+      order.order_stage = order_stage; // Update the order stage
+    }
+
+    await order.save();
+
+    res
+      .status(200)
+      .json({ message: "Order stage updated successfully", order });
+  } catch (error) {
+    console.error("Update order error:", error.message);
     res.status(500).json({ error: "Server error", details: error.message });
   }
 });
