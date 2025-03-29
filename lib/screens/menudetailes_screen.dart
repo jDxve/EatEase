@@ -50,49 +50,32 @@ class _MenudetailesScreenState extends State<MenudetailesScreen> {
       });
     }
   }
-String generateOrderId(){
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  final random = Random();
-  String orderId = '';
 
-  // Generate a random string of 6 characters
-  for (int i = 0; i < 6; i++) {
-    orderId += characters[random.nextInt(characters.length)];
-  }
-
-  // Append the current timestamp
-  orderId += DateTime.now().millisecondsSinceEpoch.toString();
-
-  return orderId; // Returns a unique order ID
-}
   void _addToCart() async {
     // Check if the item is already in the cart
     if (cartQuantities.containsKey(widget.foodId)) {
-      // If it exists, show a circular notification and exit the method
       _showCircularNotification(
           "Item is already in the cart.", Colors.redAccent);
-      return; // Exit the method
+      return;
     }
 
-    // Create the order item
     final orderItem = {
       "menu_id": widget.foodId,
       "name": widget.title,
-      "quantity": quantity, // Use the current quantity
+      "quantity": quantity,
       "price": widget.price,
     };
 
     // Create the order payload
     final orderPayload = {
       "customer_id": widget.userId,
-      "restaurant_id":
-          widget.restaurantId, 
-          "order_id": generateOrderId(), /// Include restaurantId in the payload
+      "restaurant_id": widget.restaurantId,
+      "order_id": null,
       "items": [orderItem],
       "order_status": 1,
       "order_stage": "add to cart",
       "pickup_time": DateTime.now().toIso8601String(),
-      // No need to include order_id here, it will be generated on the server
+      // Removed order_id generation from client side
     };
 
     // Log the order payload for debugging

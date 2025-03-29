@@ -165,6 +165,20 @@ app.get("/api/restaurants/:restaurantId/menu", async (req, res) => {
   }
 });
 const Order = require("./models/Orders");
+// Define the generateOrderId function
+function generateOrderId() {
+  const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let orderId = "";
+  const length = 6; // Length of the random part
+
+  for (let i = 0; i < length; i++) {
+    orderId += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+
+  orderId += Date.now(); // Append current timestamp
+  return orderId;
+}
+
 // Add orders
 app.post("/api/orders", async (req, res) => {
   console.log("Incoming order request:", req.body);
@@ -223,7 +237,7 @@ app.post("/api/orders", async (req, res) => {
     }
 
     // Create new order if no existing order found
-    const newOrderId = await generateOrderId();
+    const newOrderId = generateOrderId(); // Call the function to generate a new order ID
     const newOrder = new Order({
       customer_id: new mongoose.Types.ObjectId(customer_id),
       restaurant_id: new mongoose.Types.ObjectId(restaurant_id),
