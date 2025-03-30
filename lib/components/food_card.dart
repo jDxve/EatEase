@@ -165,7 +165,7 @@ class _FoodListState extends State<FoodList> {
             .toList();
 
     return Container(
-      height: 360,
+      height: double.infinity,
       child: isLoading
           ? Center(child: CircularProgressIndicator())
           : errorMessage.isNotEmpty

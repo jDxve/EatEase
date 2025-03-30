@@ -465,10 +465,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                             ),
                                           ),
                                         ),
-                                        const SizedBox(width: 220),
+                                        const SizedBox(width: 210),
                                         Expanded(
                                           child: Text(
-                                            '₱ ${calculateTotalAmount().toStringAsFixed(2)}', // Display the calculated total amount
+                                            NumberFormat.currency(
+                                                    locale: 'en_PH',
+                                                    symbol: '₱ ')
+                                                .format(
+                                                    calculateTotalAmount()), // Format the total amount
                                             textAlign: TextAlign.center,
                                             style: const TextStyle(
                                               color: Color.fromARGB(
@@ -485,7 +489,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                     padding: const EdgeInsets.all(0),
                                     child: Container(
                                       width: double.infinity,
-                                      height: 140,
+                                      height: 155,
                                       decoration: BoxDecoration(
                                         color: const Color(0xFFFFE6EA),
                                         borderRadius: BorderRadius.circular(10),
@@ -495,17 +499,85 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Padding(
-                                            padding: const EdgeInsets.fromLTRB(
-                                                12, 8, 0, 0),
-                                            child: const Text(
+                                            padding: const EdgeInsets.all(12.0),
+                                            child: Text(
                                               'Payment Options',
                                               style: TextStyle(
-                                                fontSize: 15,
-                                                fontWeight: FontWeight.w600,
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
                                                 color: Colors.black,
                                               ),
                                             ),
                                           ),
+                                          const SizedBox(height: 1),
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                                left:
+                                                    20.0), // Adjust the left padding as needed
+                                            child: Row(
+                                              children: [
+                                                Image.asset(
+                                                      'assets/images/Cash.png', // Replace with your actual asset path
+                                                      height: 20.0,
+                                                      width: 20.0,
+                                                    ),
+                                                SizedBox(
+                                                    width:
+                                                        8.0), // Adds spacing between the icon and text
+                                                Text('Cash Payment',
+                                                    style: TextStyle(
+                                                        fontSize: 14)),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(height: 12),
+                                          Column(
+                                            children: [
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                    left:
+                                                        20.0), // Adjust the left padding as needed
+                                                child: Row(
+                                                  children: [
+                                                    Image.asset(
+                                                      'assets/images/Wallet.png', // Replace with your actual asset path
+                                                      height: 20.0,
+                                                      width: 20.0,
+                                                    ),
+                                                    SizedBox(
+                                                        width:
+                                                            8.0), // Adds spacing between the SVG and text
+                                                    Text(
+                                                      'E-Wallet',
+                                                      style: TextStyle(
+                                                          fontSize: 14),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              const SizedBox(height: 12),
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                    left:
+                                                        20.0), // Adjust the left padding as needed
+                                                child: Row(
+                                                  children: [
+                                                     Image.asset(
+                                                      'assets/images/CreditCard.png', // Replace with your actual asset path
+                                                      height: 20.0,
+                                                      width: 20.0,
+                                                    ),
+                                                    SizedBox(
+                                                        width:
+                                                            8.0), // Adds spacing between the icon and text
+                                                    Text('Credit or Debit',
+                                                        style: TextStyle(
+                                                            fontSize: 14)),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          )
                                         ],
                                       ),
                                     ),

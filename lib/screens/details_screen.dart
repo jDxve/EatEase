@@ -27,6 +27,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
   @override
   void initState() {
     super.initState();
+    deleteCartItems();
     fetchRestaurantDetails();
   }
 
@@ -113,20 +114,11 @@ class _DetailsScreenState extends State<DetailsScreen> {
 
       if (response.statusCode == 200) {
         print('Cart items deleted successfully');
-        setState(() {
-          successMessage = 'Cart items deleted successfully';
-        });
       } else {
         print('Failed to delete cart items: ${response.body}');
-        setState(() {
-          successMessage = 'Failed to delete cart items';
-        });
       }
     } catch (e) {
       print('Error deleting cart items: $e');
-      setState(() {
-        successMessage = 'Error deleting cart items';
-      });
     }
   }
 
@@ -327,12 +319,15 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                               onCategorySelected:
                                                   onCategorySelected),
                                           const SizedBox(height: 10),
-                                          FoodList(
-                                            restaurantId: widget.restaurantId,
-                                            userId: widget.userId,
-                                            selectedCategory: selectedCategory,
-                                          ) // Pass the selected category ID
+                                          // Pass the selected category ID
                                         ],
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: FoodList(
+                                        restaurantId: widget.restaurantId,
+                                        userId: widget.userId,
+                                        selectedCategory: selectedCategory,
                                       ),
                                     ),
                                   ],
