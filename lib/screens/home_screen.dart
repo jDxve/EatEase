@@ -118,9 +118,17 @@ class _HomeScreenState extends State<HomeScreen> {
           }
         }).toList();
 
+        // Debugging: Print the parsed restaurants
+        print('Parsed Restaurants: $parsedRestaurants');
+
+        // Filter restaurants with status '2'
         parsedRestaurants = parsedRestaurants.where((restaurant) {
-          return restaurant['dbStatus'] == '1';
+          return restaurant['dbStatus'] ==
+              '2'; // Ensure this is a string comparison
         }).toList();
+
+        // Debugging: Print the filtered restaurants
+        print('Filtered Restaurants: $parsedRestaurants');
 
         setState(() {
           restaurants = parsedRestaurants;
@@ -167,7 +175,10 @@ class _HomeScreenState extends State<HomeScreen> {
     } else {
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (context) => DetailsScreen(restaurantId: restaurantId, userId: widget.userId,),
+          builder: (context) => DetailsScreen(
+            restaurantId: restaurantId,
+            userId: widget.userId,
+          ),
         ),
       );
     }
@@ -197,7 +208,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-              
               const SizedBox(height: 20),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),

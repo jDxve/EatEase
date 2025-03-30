@@ -1,32 +1,5 @@
 import 'package:flutter/material.dart';
 
-final List<Map<String, dynamic>> checkout_food = [
-  {
-    'name': 'Random Food',
-    'imageUrl': 'assets/images/restaurant1.png',
-    'price': 173.0,
-    'quantity': 4,
-  },
-  {
-    'name': 'Spicy Wings',
-    'imageUrl': 'assets/images/restaurant1.png',
-    'price': 250.0,
-    'quantity': 2,
-  },
-  {
-    'name': 'Spicy Wings',
-    'imageUrl': 'assets/images/restaurant1.png',
-    'price': 250.0,
-    'quantity': 2,  
-  },
-  {
-    'name': 'Spicy Wings',
-    'imageUrl': 'assets/images/restaurant1.png',
-    'price': 250.0,
-    'quantity': 2,
-  },
-];
-
 class FoodItemCheckout extends StatelessWidget {
   final String name;
   final String imageUrl;
@@ -54,11 +27,15 @@ class FoodItemCheckout extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
-                imageUrl,
-                width: 100,
-                height: 70,
+              child: Image.network(
+                imageUrl, // Use the imageUrl parameter
+                height: 60,
+                width: 80,
                 fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Image.asset('assets/images/placeholder.png',
+                      height: 60, width: 80); // Placeholder image
+                },
               ),
             ),
             const SizedBox(width: 15),

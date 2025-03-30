@@ -61,6 +61,7 @@ class _MenudetailesScreenState extends State<MenudetailesScreen> {
 
     final orderItem = {
       "menu_id": widget.foodId,
+      "image": widget.imageUrl,
       "name": widget.title,
       "quantity": quantity,
       "price": widget.price,
@@ -72,6 +73,7 @@ class _MenudetailesScreenState extends State<MenudetailesScreen> {
       "restaurant_id": widget.restaurantId,
       "order_id": null,
       "items": [orderItem],
+
       "order_status": 1,
       "order_stage": "add to cart",
       "pickup_time": DateTime.now().toIso8601String(),

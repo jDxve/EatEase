@@ -101,7 +101,7 @@ app.post("/api/users/login", async (req, res) => {
 //Fetch all restaurants Route
 app.get("/api/restaurants", async (req, res) => {
   try {
-    const restaurants = await Restaurant.find({ status: 1 });
+    const restaurants = await Restaurant.find({ status: 2 });
     res.status(200).json(restaurants);
   } catch (error) {
     console.error("Error fetching restaurants:", error);
@@ -289,6 +289,7 @@ app.get("/api/orders/:customer_id", async (req, res) => {
       items: order.items.map((item) => ({
         id: item._id, // Include the item ID
         menuId: item.menu_id,
+        image: item.image,
         name: item.name,
         quantity: item.quantity,
         price: item.price,
@@ -303,6 +304,38 @@ app.get("/api/orders/:customer_id", async (req, res) => {
     res.status(200).json({ message: "Order found", order: formattedOrder });
   } catch (error) {
     console.error("Order error:", error);
+    res.status(500).json({ error: "Server error", details: error.message });
+  }
+});
+// Delete all items in the cart for a specific user
+app.delete("/api/orders/:customer_id/items", async (req, res) => {
+  try {
+    const { customer_id } = req.params;
+
+    // Validate customer_id format
+    if (!mongoose.Types.ObjectId.isValid(customer_id)) {
+      return res.status(400).json({ error: "Invalid customer ID format" });
+    }
+
+    // Find the order for the customer
+    const order = await Order.findOne({
+      customer_id: new mongoose.Types.ObjectId(customer_id),
+      order_stage: "add to cart",
+      order_status: 1,
+    });
+
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    // Clear the items in the order
+    order.items = [];
+    order.total_amount = 0; // Reset total amount
+    await order.save(); // Save the updated order
+
+    res.status(200).json({ message: "All items deleted from order", order });
+  } catch (error) {
+    console.error("Delete all items error:", error);
     res.status(500).json({ error: "Server error", details: error.message });
   }
 });

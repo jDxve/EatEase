@@ -10,10 +10,11 @@ class CheckoutScreen extends StatefulWidget {
   final String? userId; // Add userId as a parameter
   final String restaurantId; // Add restaurantId as a parameter
 
-  const CheckoutScreen(
-      {super.key,
-      this.userId,
-      required this.restaurantId}); // Update the constructor
+  const CheckoutScreen({
+    super.key,
+    this.userId,
+    required this.restaurantId,
+  }); // Update the constructor
 
   @override
   State<CheckoutScreen> createState() => _CheckoutScreenState();
@@ -23,6 +24,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   TimeOfDay? selectedTime;
   int currentStep = 3;
   Map<String, dynamic>? restaurantDetails;
+  List<Map<String, dynamic>> foodItems = []; // List to hold food items
   bool isLoading = true;
   String errorMessage = '';
 
@@ -44,6 +46,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           restaurantDetails = json.decode(response.body);
           isLoading = false;
         });
+        fetchFoodItems(); // Fetch food items after getting restaurant details
       } else {
         setState(() {
           errorMessage = 'Error: ${response.statusCode} - ${response.body}';
@@ -54,6 +57,37 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       setState(() {
         errorMessage = 'Exception: $e';
         isLoading = false;
+      });
+    }
+  }
+
+  Future<void> fetchFoodItems() async {
+    final String apiUrl =
+        "${dotenv.env['API_BASE_URL']}/orders/${widget.userId}"; // Replace with your API URL
+
+    try {
+      final response = await http.get(Uri.parse(apiUrl));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body); // Decode the response body
+        if (data['order'] != null) {
+          setState(() {
+            foodItems = List<Map<String, dynamic>>.from(data['order']['items']);
+          });
+        } else {
+          setState(() {
+            errorMessage = 'No order found.';
+          });
+        }
+      } else {
+        final data = json.decode(response.body); // Decode the error response
+        setState(() {
+          errorMessage = 'Failed to load food items: ${data['error']}';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = 'An error occurred: $e';
       });
     }
   }
@@ -86,7 +120,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     if (widget.userId == null) {
       // Handle case where userId is not available
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('User  ID is not available')),
+        const SnackBar(content: Text('User     ID is not available')),
       );
       return;
     }
@@ -96,6 +130,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     final Map<String, dynamic> requestBody = {
       'order_stage': 'add to cart', // Set the order stage to 'add to cart'
+      'pickup_time': selectedTime != null
+          ? '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}'
+          : DateTime.now()
+              .toString()
+              .split(' ')[1]
+              .split('.')[0], // Use real-time if user hasn't set the time
     };
 
     try {
@@ -127,6 +167,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
   }
 
+  double calculateTotalAmount() {
+    return foodItems.fold(
+        0, (total, item) => total + (item['price'] * item['quantity']));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -143,39 +188,39 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             Row(
               children: [
                 Padding(
-                    padding: const EdgeInsets.only(left: 10),
-                    child: IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () async {
-                        // Update order stage before navigating back
-                        try {
-                          final response = await http.put(
-                            Uri.parse(
-                                "${dotenv.env['API_BASE_URL']}/orders/${widget.userId}"),
-                            headers: {'Content-Type': 'application/json'},
-                            body: json.encode({
-                              'order_stage': 'add to cart',
-                              'order_status': 1,
-                            }),
-                          );
+                  padding: const EdgeInsets.only(left: 10),
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () async {
+                      // Update order stage before navigating back
+                      try {
+                        final response = await http.put(
+                          Uri.parse(
+                              "${dotenv.env['API_BASE_URL']}/orders/${widget.userId}"),
+                          headers: {'Content-Type': 'application/json'},
+                          body: json.encode({
+                            'order_stage': 'add to cart',
+                            'order_status': 1,
+                          }),
+                        );
 
-                          if (response.statusCode != 200) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content:
-                                      Text('Failed to update order status')),
-                            );
-                          }
-                        } catch (e) {
+                        if (response.statusCode != 200) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Error updating order: $e')),
+                            const SnackBar(
+                                content: Text('Failed to update order status')),
                           );
                         }
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error updating order: $e')),
+                        );
+                      }
 
-                        // Navigate back regardless of API call result
-                        Navigator.pop(context);
-                      },
-                    )),
+                      // Navigate back regardless of API call result
+                      Navigator.pop(context);
+                    },
+                  ),
+                ),
                 const Expanded(
                   child: Center(
                     child: Text(
@@ -256,7 +301,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                                     restaurantDetails![
                                                                 'address'] !=
                                                             null
-                                                        ? '${restaurantDetails!['address']['street']}, ${restaurantDetails!['address']['city']}, ${restaurantDetails!['address']['province']}'
+                                                        ? '${restaurantDetails!['address']['street'] ?? 'Street not available'}, ${restaurantDetails!['address']['city'] ?? 'City not available'}, ${restaurantDetails!['address']['province'] ?? 'Province not available'}'
                                                         : 'Location not available',
                                                     style: const TextStyle(
                                                       fontSize: 11,
@@ -328,8 +373,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                           const SizedBox(height: 5),
                                           Padding(
                                             padding: const EdgeInsets.only(
-                                                left:
-                                                    20.0), // Adjust the value as needed
+                                                left: 20.0),
                                             child: Container(
                                               width: 140,
                                               height: 30,
@@ -395,11 +439,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   Expanded(
                                     child: ListView(
                                       padding: EdgeInsets.zero,
-                                      children: checkout_food.map((foodItem) {
+                                      children: foodItems.map((foodItem) {
                                         return FoodItemCheckout(
                                           name: foodItem['name'],
-                                          imageUrl: foodItem['imageUrl'],
-                                          price: foodItem['price'],
+                                          imageUrl: foodItem['image'] ??
+                                              'assets/images/restaurant1.png', // Default image if not available
+                                          price: foodItem['price'].toDouble(),
                                           quantity: foodItem['quantity'],
                                         );
                                       }).toList(),
@@ -423,7 +468,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                         const SizedBox(width: 220),
                                         Expanded(
                                           child: Text(
-                                            '₱ 345',
+                                            '₱ ${calculateTotalAmount().toStringAsFixed(2)}', // Display the calculated total amount
                                             textAlign: TextAlign.center,
                                             style: const TextStyle(
                                               color: Color.fromARGB(

@@ -244,8 +244,7 @@ class _MyCartScreenState extends State<MyCartScreen> {
                                     return FoodItemCard(
                                       foodItem: {
                                         'name': item['name'] ?? 'Unknown',
-                                        'imageUrl':
-                                            'assets/images/restaurant1.png',
+                                        'imageUrl': item['image'] ?? '',
                                         'price': item['price'] ?? 0.0,
                                         'quantity': item['quantity'] ?? 1,
                                         'customer_id': widget.userId ?? '',

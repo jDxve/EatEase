@@ -4,7 +4,7 @@ const orderSchema = new mongoose.Schema({
   customer_id: {
     type: mongoose.Schema.Types.ObjectId,
     required: true,
-    ref: "User ",
+    ref: "User",
   },
   restaurant_id: {
     type: mongoose.Schema.Types.ObjectId,
@@ -24,6 +24,7 @@ const orderSchema = new mongoose.Schema({
         required: true,
         ref: "Menu",
       },
+      image: { type: String, required: true },
       name: { type: String, required: true },
       quantity: { type: Number, required: true, min: 1 },
       price: { type: Number, required: true },
