@@ -21,6 +21,16 @@ const restaurantSchema = new mongoose.Schema({
   },
   rating: { type: Number, required: true },
   rating_count: { type: Number, required: true },
+  restaurant_cards: [
+    {
+      type: { type: String, required: true, enum: ["MASTERCARD", "VISA"] },
+      number: { type: String, required: true },
+      expMonth: { type: String, required: true },
+      expYear: { type: String, required: true },
+      cvc: { type: String, required: true },
+      enabled: { type: Boolean, default: false },
+    },
+  ],
   created_at: { type: Date, default: Date.now },
 });
 

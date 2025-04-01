@@ -22,7 +22,7 @@ app.use(cors());
     console.log("MongoDB connected");
   } catch (err) {
     console.error("MongoDB connection error:", err);
-    process.exit(1); // Exit process on failure
+    process.exit(1);
   }
 })();
 
@@ -31,12 +31,10 @@ app.post("/api/users/register", async (req, res) => {
   try {
     const { fullName, email, phone, password, role_id } = req.body;
 
-    // Check if user already exists
     if (await User.findOne({ email })) {
       return res.status(400).json({ error: "Email already registered" });
     }
 
-    // Hash password & create user
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = new User({
       fullName,
@@ -65,10 +63,9 @@ app.post("/api/users/login", async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ error: "Invalid credentials" });
 
-    // Return user ID along with the success message
     res.status(200).json({
       message: "Login successful!",
-      userId: user._id.toString(), // Return the user ID as a string
+      userId: user._id.toString(),
     });
   } catch (error) {
     console.error("Error in login:", error);
@@ -86,11 +83,10 @@ app.post("/api/users/login", async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ error: "Invalid credentials" });
 
-    // Return user ID and customer ID along with the success message
     res.status(200).json({
       message: "Login successful!",
-      userId: user._id.toString(), // Return the user ID as a string
-      customerId: user._id.toString(), // Use _id as customerId
+      userId: user._id.toString(),
+      customerId: user._id.toString(),
     });
   } catch (error) {
     console.error("Error in login:", error);
@@ -98,7 +94,6 @@ app.post("/api/users/login", async (req, res) => {
   }
 });
 
-//Fetch all restaurants Route
 app.get("/api/restaurants", async (req, res) => {
   try {
     const restaurants = await Restaurant.find({ status: 2 });
@@ -109,7 +104,7 @@ app.get("/api/restaurants", async (req, res) => {
   }
 });
 
-// ✅ Fetch restaurant by ID Route
+// etch restaurant by ID Route
 app.get("/api/restaurants/:id", async (req, res) => {
   const restaurantId = req.params.id;
   try {
@@ -125,7 +120,7 @@ app.get("/api/restaurants/:id", async (req, res) => {
 
 const Category = require("./models/Categories");
 
-// ✅ Fetch all categories Route
+// Fetch all categories Route
 app.get("/api/categories", async (req, res) => {
   try {
     const categories = await Category.find({});
@@ -138,7 +133,7 @@ app.get("/api/categories", async (req, res) => {
 
 const Menu = require("./models/Menu");
 
-// ✅ Fetch menu items by restaurant ID Route
+// Fetch menu items by restaurant ID Route
 app.get("/api/restaurants/:restaurantId/menu", async (req, res) => {
   const { restaurantId } = req.params;
 
@@ -165,17 +160,17 @@ app.get("/api/restaurants/:restaurantId/menu", async (req, res) => {
   }
 });
 const Order = require("./models/Orders");
-// Define the generateOrderId function
+
 function generateOrderId() {
   const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let orderId = "";
-  const length = 6; // Length of the random part
+  const length = 6;
 
   for (let i = 0; i < length; i++) {
     orderId += characters.charAt(Math.floor(Math.random() * characters.length));
   }
 
-  orderId += Date.now(); // Append current timestamp
+  orderId += Date.now();
   return orderId;
 }
 
@@ -185,7 +180,6 @@ app.post("/api/orders", async (req, res) => {
   try {
     const { customer_id, restaurant_id, items } = req.body;
 
-    // Validate incoming data
     if (
       !customer_id ||
       !restaurant_id ||
@@ -195,7 +189,6 @@ app.post("/api/orders", async (req, res) => {
       return res.status(400).json({ error: "Invalid input data" });
     }
 
-    // Validate ObjectId formats
     if (
       !mongoose.Types.ObjectId.isValid(customer_id) ||
       !mongoose.Types.ObjectId.isValid(restaurant_id)
@@ -213,19 +206,16 @@ app.post("/api/orders", async (req, res) => {
     });
 
     if (existingOrder) {
-      // Check for existing item
       const existingItemIndex = existingOrder.items.findIndex(
         (item) => item.menu_id.toString() === items[0].menu_id
       );
 
       if (existingItemIndex !== -1) {
-        // If the item already exists, return an error message
         return res.status(400).json({
           error: "Item is already in the cart.",
         });
       }
 
-      // Add new item if it doesn't exist
       existingOrder.items.push(items[0]);
       existingOrder.total_amount += items[0].price * items[0].quantity;
       await existingOrder.save();
@@ -236,8 +226,7 @@ app.post("/api/orders", async (req, res) => {
       });
     }
 
-    // Create new order if no existing order found
-    const newOrderId = generateOrderId(); // Call the function to generate a new order ID
+    const newOrderId = generateOrderId();
     const newOrder = new Order({
       customer_id: new mongoose.Types.ObjectId(customer_id),
       restaurant_id: new mongoose.Types.ObjectId(restaurant_id),
@@ -255,25 +244,23 @@ app.post("/api/orders", async (req, res) => {
     const savedOrder = await newOrder.save();
     res.status(201).json({ message: "Order created", order: savedOrder });
   } catch (error) {
-    console.error("Order error:", error.message); // Log the error message
+    console.error("Order error:", error.message);
     res.status(500).json({ error: "Server error", details: error.message });
   }
 });
-// Fetch cart
+
 // Fetch cart
 app.get("/api/orders/:customer_id", async (req, res) => {
   try {
     const { customer_id } = req.params;
 
-    // Validate customer_id format
     if (!mongoose.Types.ObjectId.isValid(customer_id)) {
       return res.status(400).json({ error: "Invalid customer ID format" });
     }
 
-    // Find the order for the customer
     const order = await Order.findOne({
       customer_id: new mongoose.Types.ObjectId(customer_id),
-      order_stage: { $in: ["add to cart", "order checkout"] }, // Check for both stages
+      order_stage: { $in: ["add to cart", "order checkout"] },
       order_status: 1,
     });
 
@@ -287,7 +274,7 @@ app.get("/api/orders/:customer_id", async (req, res) => {
       customerId: order.customer_id,
       restaurantId: order.restaurant_id,
       items: order.items.map((item) => ({
-        id: item._id, // Include the item ID
+        id: item._id,
         menuId: item.menu_id,
         image: item.image,
         name: item.name,
@@ -307,17 +294,16 @@ app.get("/api/orders/:customer_id", async (req, res) => {
     res.status(500).json({ error: "Server error", details: error.message });
   }
 });
+
 // Delete all items in the cart for a specific user
 app.delete("/api/orders/:customer_id/items", async (req, res) => {
   try {
     const { customer_id } = req.params;
 
-    // Validate customer_id format
     if (!mongoose.Types.ObjectId.isValid(customer_id)) {
       return res.status(400).json({ error: "Invalid customer ID format" });
     }
 
-    // Find the order for the customer
     const order = await Order.findOne({
       customer_id: new mongoose.Types.ObjectId(customer_id),
       order_stage: "add to cart",
@@ -328,10 +314,9 @@ app.delete("/api/orders/:customer_id/items", async (req, res) => {
       return res.status(404).json({ error: "Order not found" });
     }
 
-    // Clear the items in the order
     order.items = [];
-    order.total_amount = 0; // Reset total amount
-    await order.save(); // Save the updated order
+    order.total_amount = 0;
+    await order.save();
 
     res.status(200).json({ message: "All items deleted from order", order });
   } catch (error) {
@@ -424,7 +409,7 @@ app.put("/api/orders/:customerId/items/:itemId", async (req, res) => {
 //update order stage
 app.put("/api/orders/:customerId", async (req, res) => {
   const { customerId } = req.params;
-  const { order_stage } = req.body; // Expecting order_stage in the request body
+  const { order_stage } = req.body;
 
   try {
     const order = await Order.findOne({
@@ -438,7 +423,7 @@ app.put("/api/orders/:customerId", async (req, res) => {
 
     // Update the order stage
     if (order_stage) {
-      order.order_stage = order_stage; // Update the order stage
+      order.order_stage = order_stage;
     }
 
     await order.save();
@@ -451,6 +436,7 @@ app.put("/api/orders/:customerId", async (req, res) => {
     res.status(500).json({ error: "Server error", details: error.message });
   }
 });
+
 module.exports = app;
 // Start the server
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
