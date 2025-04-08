@@ -37,15 +37,18 @@ const orderSchema = new mongoose.Schema({
   },
   order_stage: {
     type: String,
-    enum: ["add to cart", "order checkout", "order already pickup"],
+    enum: [
+      "add to cart",
+      "order checkout",
+      "place order",
+      "order already pickup",
+    ],
     default: "add to cart",
   },
   pickup_time: {
-    type: Date,
-    default: Date.now,
+    type: String,
+    required: true 
   },
-  preparation_status: { type: String },
-  created_at: { type: Date, default: Date.now },
 });
 
 module.exports = mongoose.model("Order", orderSchema);

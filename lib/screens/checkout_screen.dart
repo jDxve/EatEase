@@ -5,16 +5,17 @@ import 'package:eatease/components/step_indicator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:eatease/components/payment_serice.dart';
 
 class CheckoutScreen extends StatefulWidget {
-  final String? userId; // Add userId as a parameter
-  final String restaurantId; // Add restaurantId as a parameter
+  final String? userId;
+  final String restaurantId;
 
   const CheckoutScreen({
     super.key,
     this.userId,
     required this.restaurantId,
-  }); // Update the constructor
+  });
 
   @override
   State<CheckoutScreen> createState() => _CheckoutScreenState();
@@ -24,9 +25,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   TimeOfDay? selectedTime;
   int currentStep = 3;
   Map<String, dynamic>? restaurantDetails;
-  List<Map<String, dynamic>> foodItems = []; // List to hold food items
+  List<Map<String, dynamic>> foodItems = [];
   bool isLoading = true;
   String errorMessage = '';
+  int _selectedPaymentOption = 0;
 
   @override
   void initState() {
@@ -36,7 +38,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Future<void> fetchRestaurantDetails() async {
     final String apiUrl =
-        "${dotenv.env['API_BASE_URL']}/restaurants/${widget.restaurantId}"; // Replace with your API URL
+        "${dotenv.env['API_BASE_URL']}/restaurants/${widget.restaurantId}";
 
     try {
       final response = await http.get(Uri.parse(apiUrl));
@@ -46,7 +48,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           restaurantDetails = json.decode(response.body);
           isLoading = false;
         });
-        fetchFoodItems(); // Fetch food items after getting restaurant details
+        fetchFoodItems();
       } else {
         setState(() {
           errorMessage = 'Error: ${response.statusCode} - ${response.body}';
@@ -63,13 +65,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Future<void> fetchFoodItems() async {
     final String apiUrl =
-        "${dotenv.env['API_BASE_URL']}/orders/${widget.userId}"; // Replace with your API URL
+        "${dotenv.env['API_BASE_URL']}/orders/${widget.userId}";
 
     try {
       final response = await http.get(Uri.parse(apiUrl));
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body); // Decode the response body
+        final data = json.decode(response.body);
         if (data['order'] != null) {
           setState(() {
             foodItems = List<Map<String, dynamic>>.from(data['order']['items']);
@@ -80,7 +82,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           });
         }
       } else {
-        final data = json.decode(response.body); // Decode the error response
+        final data = json.decode(response.body);
         setState(() {
           errorMessage = 'Failed to load food items: ${data['error']}';
         });
@@ -118,24 +120,100 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Future<void> placeOrder() async {
     if (widget.userId == null) {
-      // Handle case where userId is not available
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('User     ID is not available')),
+        const SnackBar(content: Text('User  ID is not available')),
       );
       return;
     }
 
+    if (selectedTime == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a pickup time')),
+      );
+      return;
+    }
+
+    String? paymentMethod;
+    switch (_selectedPaymentOption) {
+      case 0: // Cash payment
+        await _processCashPayment();
+        return;
+      case 1: // GCash
+        paymentMethod = 'gcash';
+        break;
+      case 2: // Grab Pay
+        paymentMethod = 'grab_pay';
+        break;
+    }
+
+    if (paymentMethod != null) {
+      final totalAmount = calculateTotalAmount();
+      final description = 'Payment for order at ${restaurantDetails!['name']}';
+
+      try {
+        // Process payment using PaymentService
+        final paymentResult = await PaymentService.processPayment(
+          amount: totalAmount,
+          paymentMethod: paymentMethod,
+          description: description,
+        );
+
+        // Handle the payment result
+        final paymentIntentId = paymentResult['data']['id'];
+        final checkoutUrl = paymentResult['data']['attributes']['checkout_url'];
+
+        // Open the payment URL in the app
+        if (checkoutUrl != null) {
+          // Launch the payment URL in a web view or in-app browser
+          // You can use a package like `flutter_webview_plugin` or `webview_flutter`
+          // For example:
+          // Navigator.push(context, MaterialPageRoute(builder: (context) => PaymentWebView(url: checkoutUrl)));
+
+          // Start polling for payment status
+          bool isPaid = false;
+          int attempts = 0;
+
+          while (!isPaid && attempts < 30) {
+            await Future.delayed(Duration(seconds: 10));
+            final statusResult =
+                await PaymentService.checkPaymentStatus(paymentIntentId);
+            isPaid = statusResult['data']['attributes']['status'] == 'paid';
+            attempts++;
+
+            if (isPaid) {
+              await _processCashPayment(); // Update order status
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Payment successful!')),
+              );
+              break;
+            }
+          }
+
+          if (!isPaid) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Payment timeout or cancelled')),
+            );
+          }
+        } else {
+          throw Exception('Invalid checkout URL');
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _processCashPayment() async {
     final String apiUrl =
-        "${dotenv.env['API_BASE_URL']}/api/orders/${widget.userId}"; // Replace with your API URL
+        "${dotenv.env['API_BASE_URL']}/orders/${widget.userId}";
 
     final Map<String, dynamic> requestBody = {
-      'order_stage': 'add to cart', // Set the order stage to 'add to cart'
+      'order_stage': 'add to cart',
       'pickup_time': selectedTime != null
           ? '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}'
-          : DateTime.now()
-              .toString()
-              .split(' ')[1]
-              .split('.')[0], // Use real-time if user hasn't set the time
+          : DateTime.now().toString().split(' ')[1].split('.')[0],
     };
 
     try {
@@ -146,21 +224,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       );
 
       if (response.statusCode == 200) {
-        // Handle successful order placement
         final responseData = json.decode(response.body);
-        // You can show a success message or navigate to another screen
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(responseData['message'])),
         );
       } else {
-        // Handle error response
         final responseData = json.decode(response.body);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(responseData['error'])),
         );
       }
     } catch (e) {
-      // Handle exception
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Exception: $e')),
       );
@@ -192,31 +266,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   child: IconButton(
                     icon: const Icon(Icons.arrow_back, color: Colors.white),
                     onPressed: () async {
-                      // Update order stage before navigating back
-                      try {
-                        final response = await http.put(
-                          Uri.parse(
-                              "${dotenv.env['API_BASE_URL']}/orders/${widget.userId}"),
-                          headers: {'Content-Type': 'application/json'},
-                          body: json.encode({
-                            'order_stage': 'add to cart',
-                            'order_status': 1,
-                          }),
-                        );
-
-                        if (response.statusCode != 200) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Failed to update order status')),
-                          );
-                        }
-                      } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Error updating order: $e')),
-                        );
-                      }
-
-                      // Navigate back regardless of API call result
                       Navigator.pop(context);
                     },
                   ),
@@ -272,67 +321,54 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                         ),
                                       ),
                                       const SizedBox(width: 10),
-                                      Row(
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
-                                          const SizedBox(width: 5),
-                                          Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
+                                          Text(
+                                            restaurantDetails!['name'] ??
+                                                'Unknown',
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w700,
+                                              color: Color.fromARGB(
+                                                  255, 137, 20, 12),
+                                            ),
+                                          ),
+                                          Row(
                                             children: [
+                                              const Icon(Icons.location_on,
+                                                  color: Colors.red, size: 12),
+                                              const SizedBox(width: 4),
                                               Text(
-                                                restaurantDetails!['name'] ??
-                                                    'Unknown',
+                                                restaurantDetails!['address'] !=
+                                                        null
+                                                    ? '${restaurantDetails!['address']['street'] ?? 'Street not available'}, ${restaurantDetails!['address']['city'] ?? 'City not available'}, ${restaurantDetails!['address']['province'] ?? 'Province not available'}'
+                                                    : 'Location not available',
                                                 style: const TextStyle(
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.w700,
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w400,
+                                                  color: Colors.black,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          Row(
+                                            children: [
+                                              const Icon(Icons.star,
+                                                  color: Colors.amber,
+                                                  size: 14),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                restaurantDetails!['rating']
+                                                        ?.toString() ??
+                                                    'N/A',
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
                                                   color: Color.fromARGB(
                                                       255, 137, 20, 12),
                                                 ),
-                                              ),
-                                              Row(
-                                                children: [
-                                                  const Icon(
-                                                    Icons.location_on,
-                                                    color: Colors.red,
-                                                    size: 12,
-                                                  ),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    restaurantDetails![
-                                                                'address'] !=
-                                                            null
-                                                        ? '${restaurantDetails!['address']['street'] ?? 'Street not available'}, ${restaurantDetails!['address']['city'] ?? 'City not available'}, ${restaurantDetails!['address']['province'] ?? 'Province not available'}'
-                                                        : 'Location not available',
-                                                    style: const TextStyle(
-                                                      fontSize: 11,
-                                                      fontWeight:
-                                                          FontWeight.w400,
-                                                      color: Colors.black,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                              Row(
-                                                children: [
-                                                  const Icon(
-                                                    Icons.star,
-                                                    color: Colors.amber,
-                                                    size: 14,
-                                                  ),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    restaurantDetails!['rating']
-                                                            ?.toString() ??
-                                                        'N/A',
-                                                    style: const TextStyle(
-                                                      fontSize: 11,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                      color: Color.fromARGB(
-                                                          255, 137, 20, 12),
-                                                    ),
-                                                  ),
-                                                ],
                                               ),
                                             ],
                                           ),
@@ -394,10 +430,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                                       MainAxisAlignment.center,
                                                   children: [
                                                     const Icon(
-                                                      Icons.access_time,
-                                                      color: Colors.white,
-                                                      size: 20,
-                                                    ),
+                                                        Icons.access_time,
+                                                        color: Colors.white,
+                                                        size: 20),
                                                     const SizedBox(width: 5),
                                                     Text(
                                                       selectedTime != null
@@ -443,7 +478,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                         return FoodItemCheckout(
                                           name: foodItem['name'],
                                           imageUrl: foodItem['image'] ??
-                                              'assets/images/restaurant1.png', // Default image if not available
+                                              'assets/images/restaurant1.png',
                                           price: foodItem['price'].toDouble(),
                                           quantity: foodItem['quantity'],
                                         );
@@ -512,72 +547,192 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                           const SizedBox(height: 1),
                                           Padding(
                                             padding: const EdgeInsets.only(
-                                                left:
-                                                    20.0), // Adjust the left padding as needed
-                                            child: Row(
-                                              children: [
-                                                Image.asset(
-                                                      'assets/images/Cash.png', // Replace with your actual asset path
-                                                      height: 20.0,
-                                                      width: 20.0,
+                                                left: 20.0, right: 20.0),
+                                            child: GestureDetector(
+                                              onTap: () {
+                                                setState(() {
+                                                  _selectedPaymentOption = 0;
+                                                });
+                                              },
+                                              child: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  Row(
+                                                    children: [
+                                                      Image.asset(
+                                                          'assets/images/Cash.png',
+                                                          height: 20.0,
+                                                          width: 20.0),
+                                                      SizedBox(width: 8.0),
+                                                      Text('Cash Payment',
+                                                          style: TextStyle(
+                                                              fontSize: 16)),
+                                                    ],
+                                                  ),
+                                                  Container(
+                                                    width: 20,
+                                                    height: 20,
+                                                    decoration: BoxDecoration(
+                                                      border: Border.all(
+                                                          color: Colors.grey),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              50),
                                                     ),
-                                                SizedBox(
-                                                    width:
-                                                        8.0), // Adds spacing between the icon and text
-                                                Text('Cash Payment',
-                                                    style: TextStyle(
-                                                        fontSize: 14)),
-                                              ],
+                                                    child: Center(
+                                                      child: Container(
+                                                        width:
+                                                            _selectedPaymentOption ==
+                                                                    0
+                                                                ? 10
+                                                                : 0,
+                                                        height:
+                                                            _selectedPaymentOption ==
+                                                                    0
+                                                                ? 10
+                                                                : 0,
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          color: Colors.red,
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(50),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
                                             ),
                                           ),
                                           const SizedBox(height: 12),
-                                          Column(
-                                            children: [
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                    left:
-                                                        20.0), // Adjust the left padding as needed
-                                                child: Row(
-                                                  children: [
-                                                    Image.asset(
-                                                      'assets/images/Wallet.png', // Replace with your actual asset path
-                                                      height: 20.0,
-                                                      width: 20.0,
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                                left: 20.0, right: 20.0),
+                                            child: GestureDetector(
+                                              onTap: () {
+                                                setState(() {
+                                                  _selectedPaymentOption = 1;
+                                                });
+                                              },
+                                              child: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  Row(
+                                                    children: [
+                                                      Image.asset(
+                                                          'assets/images/Wallet.png',
+                                                          height: 20.0,
+                                                          width: 20.0),
+                                                      SizedBox(width: 8.0),
+                                                      Text('GCash',
+                                                          style: TextStyle(
+                                                              fontSize: 16)),
+                                                    ],
+                                                  ),
+                                                  Container(
+                                                    width: 20,
+                                                    height: 20,
+                                                    decoration: BoxDecoration(
+                                                      border: Border.all(
+                                                          color: Colors.grey),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              50),
                                                     ),
-                                                    SizedBox(
+                                                    child: Center(
+                                                      child: Container(
                                                         width:
-                                                            8.0), // Adds spacing between the SVG and text
-                                                    Text(
-                                                      'E-Wallet',
-                                                      style: TextStyle(
-                                                          fontSize: 14),
+                                                            _selectedPaymentOption ==
+                                                                    1
+                                                                ? 10
+                                                                : 0,
+                                                        height:
+                                                            _selectedPaymentOption ==
+                                                                    1
+                                                                ? 10
+                                                                : 0,
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          color: Colors.red,
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(50),
+                                                        ),
+                                                      ),
                                                     ),
-                                                  ],
-                                                ),
+                                                  ),
+                                                ],
                                               ),
-                                              const SizedBox(height: 12),
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                    left:
-                                                        20.0), // Adjust the left padding as needed
-                                                child: Row(
-                                                  children: [
-                                                     Image.asset(
-                                                      'assets/images/CreditCard.png', // Replace with your actual asset path
-                                                      height: 20.0,
-                                                      width: 20.0,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 12),
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                                left: 20.0, right: 20.0),
+                                            child: GestureDetector(
+                                              onTap: () {
+                                                setState(() {
+                                                  _selectedPaymentOption = 2;
+                                                });
+                                              },
+                                              child: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  Row(
+                                                    children: [
+                                                      Image.asset(
+                                                          'assets/images/CreditCard.png',
+                                                          height: 20.0,
+                                                          width: 20.0),
+                                                      SizedBox(width: 8.0),
+                                                      Text('Grab Pay',
+                                                          style: TextStyle(
+                                                              fontSize: 16)),
+                                                    ],
+                                                  ),
+                                                  Container(
+                                                    width: 20,
+                                                    height: 20,
+                                                    decoration: BoxDecoration(
+                                                      border: Border.all(
+                                                          color: Colors.grey),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              50),
                                                     ),
-                                                    SizedBox(
+                                                    child: Center(
+                                                      child: Container(
                                                         width:
-                                                            8.0), // Adds spacing between the icon and text
-                                                    Text('Credit or Debit',
-                                                        style: TextStyle(
-                                                            fontSize: 14)),
-                                                  ],
-                                                ),
+                                                            _selectedPaymentOption ==
+                                                                    2
+                                                                ? 10
+                                                                : 0,
+                                                        height:
+                                                            _selectedPaymentOption ==
+                                                                    2
+                                                                ? 10
+                                                                : 0,
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          color: Colors.red,
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(50),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
-                                            ],
-                                          )
+                                            ),
+                                          ),
                                         ],
                                       ),
                                     ),
