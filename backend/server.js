@@ -447,229 +447,116 @@ app.put("/api/orders/:customerId", async (req, res) => {
 
 const axios = require("axios");
 const PAYMONGO_SECRET_KEY = "sk_test_ud4EFbLxhHYzYPTLRQaue6wF";
-// Create payment intent
-app.post("/api/create-payment-intent", async (req, res) => {
-  const { amount, paymentMethod } = req.body;
-
-  try {
-    const response = await axios.post(
-      "https://api.paymongo.com/v1/payment_intents",
-      {
-        data: {
-          attributes: {
-            amount: amount,
-            payment_method_allowed: [paymentMethod],
-            payment_method_options: {
-              card: { request_three_d_secure: "any" },
-            },
-            currency: "PHP",
-            capture_type: "automatic",
-          },
-        },
-      },
-      {
-        headers: {
-          Authorization: `Basic ${Buffer.from(
-            PAYMONGO_SECRET_KEY + ":"
-          ).toString("base64")}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    res.status(201).json(response.data);
-  } catch (err) {
-    console.error("Error creating payment intent:", err.response?.data || err);
-    res.status(500).json({
-      error: "Failed to create payment intent",
-      details: err.response?.data || err.message,
-    });
-  }
-});
-
-// Create payment method
-app.post("/api/payment-methods", async (req, res) => {
-  const { type, details } = req.body;
-
-  try {
-    const response = await axios.post(
-      "https://api.paymongo.com/v1/payment_methods",
-      {
-        data: {
-          attributes: {
-            type,
-            details,
-            billing: {
-              name: "Customer Name",
-              email: "customer@email.com",
-            },
-          },
-        },
-      },
-      {
-        headers: {
-          Authorization: `Basic ${Buffer.from(
-            PAYMONGO_SECRET_KEY + ":"
-          ).toString("base64")}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    res.status(201).json(response.data);
-  } catch (err) {
-    console.error("Error creating payment method:", err.response?.data || err);
-    res.status(500).json({
-      error: "Failed to create payment method",
-      details: err.response?.data || err.message,
-    });
-  }
-});
-
-// Attach payment method to intent
-app.post("/api/attach-payment-method", async (req, res) => {
-  const { paymentIntentId, paymentMethodId, returnUrl } = req.body;
-
-  try {
-    const response = await axios.post(
-      `https://api.paymongo.com/v1/payment_intents/${paymentIntentId}/attach`,
-      {
-        data: {
-          attributes: {
-            payment_method: paymentMethodId,
-            return_url: returnUrl,
-          },
-        },
-      },
-      {
-        headers: {
-          Authorization: `Basic ${Buffer.from(
-            PAYMONGO_SECRET_KEY + ":"
-          ).toString("base64")}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    res.status(200).json(response.data);
-  } catch (err) {
-    console.error("Error attaching payment method:", err.response?.data || err);
-    res.status(500).json({
-      error: "Failed to attach payment method",
-      details: err.response?.data || err.message,
-    });
-  }
-});
-
-// Create payment source (for GCash/GrabPay)
-app.post("/api/create-source", async (req, res) => {
-  const { amount, type, currency = "PHP", redirect } = req.body;
-
-  try {
-    const response = await axios.post(
-      "https://api.paymongo.com/v1/sources",
-      {
-        data: {
-          attributes: {
-            amount,
-            type,
-            currency,
-            redirect: {
-              success: redirect.success,
-              failed: redirect.failed,
-            },
-          },
-        },
-      },
-      {
-        headers: {
-          Authorization: `Basic ${Buffer.from(
-            PAYMONGO_SECRET_KEY + ":"
-          ).toString("base64")}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    res.status(201).json(response.data);
-  } catch (err) {
-    console.error("Error creating source:", err.response?.data || err);
-    res.status(500).json({
-      error: "Failed to create source",
-      details: err.response?.data || err.message,
-    });
-  }
-});
-
-// Process payment based on method
-app.post("/api/process-payment", async (req, res) => {
+const Payment = require("./models/Payment");
+// Create payment based on method
+app.post("/api/create-payment", async (req, res) => {
   const { amount, paymentMethod, description } = req.body;
 
   try {
     let response;
 
-    switch (paymentMethod) {
-      case "gcash":
-      case "grab_pay":
-        response = await axios.post(
-          "https://api.paymongo.com/v1/sources",
-          {
-            data: {
-              attributes: {
-                amount: amount,
-                type: paymentMethod,
-                currency: "PHP",
-                redirect: {
-                  success: "http://yourapp.com/success",
-                  failed: "http://yourapp.com/failed",
-                },
+    if (paymentMethod === "gcash" || paymentMethod === "grab_pay") {
+      // For GCash and GrabPay, create a source
+      response = await axios.post(
+        "https://api.paymongo.com/v1/sources",
+        {
+          data: {
+            attributes: {
+              amount: amount,
+              type: paymentMethod,
+              currency: "PHP",
+              redirect: {
+                success: "http://localhost:5001/success",
+                failed: "http://localhost:5001/failed",
               },
             },
           },
-          {
-            headers: {
-              Authorization: `Basic ${Buffer.from(
-                PAYMONGO_SECRET_KEY + ":"
-              ).toString("base64")}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-        break;
+        },
+        {
+          headers: {
+            Authorization: `Basic ${Buffer.from(
+              PAYMONGO_SECRET_KEY + ":"
+            ).toString("base64")}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-      case "card":
-        // Handle card payments differently if needed
-        response = await axios.post(
-          "https://api.paymongo.com/v1/payment_intents",
-          {
-            data: {
-              attributes: {
-                amount: amount,
-                payment_method_allowed: ["card"],
-                currency: "PHP",
+      return res.status(201).json({
+        success: true,
+        data: response.data,
+        checkoutUrl: response.data.data.attributes.redirect.checkout_url,
+      });
+    } else if (paymentMethod === "card") {
+      // For card payments, create a payment intent
+      response = await axios.post(
+        "https://api.paymongo.com/v1/payment_intents",
+        {
+          data: {
+            attributes: {
+              amount: amount,
+              payment_method_allowed: ["card"],
+              payment_method_options: {
+                card: { request_three_d_secure: "any" },
               },
+              description: description,
+              currency: "PHP",
+              capture_type: "automatic",
             },
           },
-          {
-            headers: {
-              Authorization: `Basic ${Buffer.from(
-                PAYMONGO_SECRET_KEY + ":"
-              ).toString("base64")}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-        break;
+        },
+        {
+          headers: {
+            Authorization: `Basic ${Buffer.from(
+              PAYMONGO_SECRET_KEY + ":"
+            ).toString("base64")}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-      default:
-        throw new Error("Unsupported payment method");
+      return res.status(201).json({
+        success: true,
+        data: response.data,
+        clientKey: response.data.data.attributes.client_key,
+      });
+    } else if (paymentMethod === "paymaya") {
+      // For PayMaya payments
+      response = await axios.post(
+        "https://api.paymongo.com/v1/links",
+        {
+          data: {
+            attributes: {
+              amount: amount,
+              description: description,
+              currency: "PHP",
+              payment_method_allowed: ["paymaya"],
+            },
+          },
+        },
+        {
+          headers: {
+            Authorization: `Basic ${Buffer.from(
+              PAYMONGO_SECRET_KEY + ":"
+            ).toString("base64")}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      return res.status(201).json({
+        success: true,
+        data: response.data,
+        checkoutUrl: response.data.data.attributes.checkout_url,
+      });
     }
 
-    res.status(201).json(response.data);
+    throw new Error("Unsupported payment method");
   } catch (err) {
-    console.error("Error processing payment:", err.response?.data || err);
+    console.error("Error creating payment:", err.response?.data || err);
     res.status(500).json({
-      error: "Failed to process payment",
+      success: false,
+      error: "Failed to create payment",
       details: err.response?.data || err.message,
     });
   }
@@ -677,25 +564,32 @@ app.post("/api/process-payment", async (req, res) => {
 
 // Check payment status
 app.get("/api/payment-status/:id", async (req, res) => {
-  const paymentId = req.params.id;
+  const { id } = req.params;
+  const { type } = req.query; // 'source' or 'payment_intent'
 
   try {
-    const response = await axios.get(
-      `https://api.paymongo.com/v1/payments/${paymentId}`,
-      {
-        headers: {
-          Authorization: `Basic ${Buffer.from(
-            PAYMONGO_SECRET_KEY + ":"
-          ).toString("base64")}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const endpoint =
+      type === "source"
+        ? `https://api.paymongo.com/v1/sources/${id}`
+        : `https://api.paymongo.com/v1/payment_intents/${id}`;
 
-    res.status(200).json(response.data);
+    const response = await axios.get(endpoint, {
+      headers: {
+        Authorization: `Basic ${Buffer.from(PAYMONGO_SECRET_KEY + ":").toString(
+          "base64"
+        )}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      data: response.data,
+    });
   } catch (err) {
     console.error("Error checking payment status:", err.response?.data || err);
     res.status(500).json({
+      success: false,
       error: "Failed to check payment status",
       details: err.response?.data || err.message,
     });

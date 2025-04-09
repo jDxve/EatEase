@@ -4,8 +4,11 @@ import 'package:eatease/components/fooditem_checkout.dart';
 import 'package:eatease/components/step_indicator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:eatease/components/payment_serice.dart';
+import 'package:eatease/screens/webview_screen.dart';
+import 'package:eatease/components/bottom_nav.dart';
 
 class CheckoutScreen extends StatefulWidget {
   final String? userId;
@@ -133,75 +136,110 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       return;
     }
 
-    String? paymentMethod;
-    switch (_selectedPaymentOption) {
-      case 0: // Cash payment
-        await _processCashPayment();
-        return;
-      case 1: // GCash
-        paymentMethod = 'gcash';
-        break;
-      case 2: // Grab Pay
-        paymentMethod = 'grab_pay';
-        break;
-    }
+    try {
+      String? paymentMethod;
+      switch (_selectedPaymentOption) {
+        case 0: // Cash payment
+          await _processCashPayment();
+          return;
+        case 1: // GCash
+          paymentMethod = 'gcash';
+          break;
+        case 2: // Grab Pay
+          paymentMethod = 'grab_pay';
+          break;
+      }
 
-    if (paymentMethod != null) {
-      final totalAmount = calculateTotalAmount();
-      final description = 'Payment for order at ${restaurantDetails!['name']}';
+      if (paymentMethod != null) {
+        final totalAmount = calculateTotalAmount();
+        final description =
+            'Payment for order at ${restaurantDetails!['name']}';
 
-      try {
-        // Process payment using PaymentService
-        final paymentResult = await PaymentService.processPayment(
-          amount: totalAmount,
-          paymentMethod: paymentMethod,
-          description: description,
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return Center(child: CircularProgressIndicator());
+          },
         );
 
-        // Handle the payment result
-        final paymentIntentId = paymentResult['data']['id'];
-        final checkoutUrl = paymentResult['data']['attributes']['checkout_url'];
+        try {
+          final paymentResult = await PaymentService.processPayment(
+            amount: (totalAmount * 100).round(),
+            paymentMethod: paymentMethod,
+            description: description,
+          );
 
-        // Open the payment URL in the app
-        if (checkoutUrl != null) {
-          // Launch the payment URL in a web view or in-app browser
-          // You can use a package like `flutter_webview_plugin` or `webview_flutter`
-          // For example:
-          // Navigator.push(context, MaterialPageRoute(builder: (context) => PaymentWebView(url: checkoutUrl)));
+          Navigator.pop(context); // Hide loading
 
-          // Start polling for payment status
-          bool isPaid = false;
-          int attempts = 0;
+          if (paymentResult['success'] == true) {
+            final checkoutUrl = paymentResult['checkoutUrl'];
+            final sourceId = paymentResult['data']['data']['id'];
 
-          while (!isPaid && attempts < 30) {
-            await Future.delayed(Duration(seconds: 10));
-            final statusResult =
-                await PaymentService.checkPaymentStatus(paymentIntentId);
-            isPaid = statusResult['data']['attributes']['status'] == 'paid';
-            attempts++;
+            bool paymentComplete = false;
+            await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PaymentWebViewScreen(
+                  url: checkoutUrl,
+                  onComplete: (success) async {
+                    paymentComplete = success;
+                    if (success) {
+                      await _processCashPayment();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Payment successful!')),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Payment was not completed')),
+                      );
+                    }
+                  },
+                ),
+              ),
+            );
 
-            if (isPaid) {
-              await _processCashPayment(); // Update order status
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Payment successful!')),
-              );
-              break;
+            // Start checking payment status
+            if (!paymentComplete) {
+              Timer.periodic(Duration(seconds: 5), (timer) async {
+                try {
+                  final statusResult = await PaymentService.checkPaymentStatus(
+                      sourceId, paymentMethod!);
+                  final status =
+                      statusResult['data']['data']['attributes']['status'];
+
+                  if (status == 'paid') {
+                    timer.cancel();
+                    await _processCashPayment();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Payment successful!')),
+                    );
+                  } else if (status == 'expired' || status == 'cancelled') {
+                    timer.cancel();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Payment was not completed')),
+                    );
+                  }
+                } catch (e) {
+                  timer.cancel();
+                  print('Error checking payment status: $e');
+                }
+              });
             }
           }
-
-          if (!isPaid) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Payment timeout or cancelled')),
-            );
-          }
-        } else {
-          throw Exception('Invalid checkout URL');
+        } catch (e) {
+          Navigator.pop(context); // Hide loading
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Payment error: $e')),
+          );
         }
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
       }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
     }
   }
 
@@ -210,7 +248,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         "${dotenv.env['API_BASE_URL']}/orders/${widget.userId}";
 
     final Map<String, dynamic> requestBody = {
-      'order_stage': 'add to cart',
+      'order_stage': 'place order',
       'pickup_time': selectedTime != null
           ? '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}'
           : DateTime.now().toString().split(' ')[1].split('.')[0],
@@ -225,18 +263,41 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
+
+        // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(responseData['message'])),
+          SnackBar(
+            content: Text(responseData['message']),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Navigate to BottomNav with OrdersScreen active
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (context) => BottomNav(
+              userId: widget.userId ?? '',
+              initialIndex: 2, // Set initial index to OrdersScreen
+            ),
+          ),
+          (route) => false, // This removes all previous routes
         );
       } else {
         final responseData = json.decode(response.body);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(responseData['error'])),
+          SnackBar(
+            content: Text(responseData['error']),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Exception: $e')),
+        SnackBar(
+          content: Text('Exception: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }

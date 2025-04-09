@@ -5,19 +5,30 @@ import 'package:eatease/screens/orders_screen.dart';
 import 'package:eatease/screens/profile_screen.dart';
 
 class BottomNav extends StatefulWidget {
-  final String userId; // Add a userId parameter
+  final String userId;
+  final int initialIndex; // Add this parameter
 
-  const BottomNav({super.key, required this.userId}); // Update the constructor
+  const BottomNav({
+    super.key,
+    required this.userId,
+    this.initialIndex = 0, // Default to 0 (Home)
+  });
 
   @override
   State<BottomNav> createState() => _BottomNavState();
 }
 
 class _BottomNavState extends State<BottomNav> {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialIndex; // Initialize with the provided index
+  }
 
   static List<Widget> _widgetOptions(String userId) => <Widget>[
-        HomeScreen(userId: userId), // Pass the userId to HomeScreen
+        HomeScreen(userId: userId),
         const ChatScreen(),
         const OrdersScreen(),
         const ProfileScreen(),
