@@ -596,6 +596,116 @@ app.get("/api/payment-status/:id", async (req, res) => {
   }
 });
 
+app.post("/api/payments", async (req, res) => {
+  try {
+    const { order_id, customer_id, restaurant_id, payment_method, amount } =
+      req.body;
+
+    // Convert string IDs to MongoDB ObjectIds
+    const payment = new Payment({
+      order_id: mongoose.Types.ObjectId(order_id),
+      customer_id: mongoose.Types.ObjectId(customer_id),
+      restaurant_id: mongoose.Types.ObjectId(restaurant_id),
+      payment_method,
+      amount: parseFloat(amount), // Ensure amount is a number
+    });
+
+    const savedPayment = await payment.save();
+
+    res.status(201).json({
+      success: true,
+      data: savedPayment,
+    });
+  } catch (err) {
+    console.error("Error creating payment record:", err);
+    // Send more detailed error information
+    res.status(500).json({
+      success: false,
+      error: err.message || "Failed to create payment record",
+    });
+  }
+});
+
+// Fetch orders with specific stage and status
+app.get("/api/place_orders/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params; // Change from customer_id to userId to match route parameter
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ error: "Invalid user ID format" });
+    }
+
+    const orders = await Order.find({
+      // Change from findOne to find to get all orders
+      customer_id: new mongoose.Types.ObjectId(userId),
+      order_stage: "place order",
+      order_status: { $in: [1, 2, 3] },
+    }).sort({ createdAt: -1 }); // Sort by newest first
+
+    if (!orders || orders.length === 0) {
+      return res.status(404).json({ message: "No orders found for this user" });
+    }
+
+    // Format the orders response
+    const formattedOrders = orders.map((order) => ({
+      id: order._id,
+      order_id: order.order_id,
+      customerId: order.customer_id,
+      restaurantId: order.restaurant_id,
+      items: order.items.map((item) => ({
+        id: item._id,
+        menuId: item.menu_id,
+        image: item.image,
+        name: item.name,
+        quantity: parseInt(item.quantity),
+        price: parseFloat(item.price),
+      })),
+      totalAmount: order.total_amount,
+      orderStatus: order.order_status,
+      orderStage: order.order_stage,
+      pickupTime: order.pickup_time,
+      createdAt: order.createdAt,
+    }));
+
+    res.status(200).json(formattedOrders);
+  } catch (error) {
+    console.error("Order error:", error);
+    res.status(500).json({ error: "Server error", details: error.message });
+  }
+});
+
+// Update order status endpoint
+// Update order status endpoint
+app.put("/api/update_order/:orderId", async (req, res) => {
+  const { orderId } = req.params;
+  const { customerId } = req.body; // Assuming customerId is sent in the request body
+
+  try {
+    const updatedOrder = await Order.findOneAndUpdate(
+      {
+        _id: orderId,
+        customer_id: new mongoose.Types.ObjectId(customerId), // Check customer ID
+      },
+      {
+        order_stage: "order already picked up",
+        order_status: 4,
+      },
+      { new: true } // Return the updated document
+    );
+
+    if (!updatedOrder) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    res.status(200).json({
+      message: "Order updated successfully",
+      order: updatedOrder,
+    });
+  } catch (error) {
+    console.error("Error updating order:", error);
+    res.status(500).json({ error: "Server error", details: error.message });
+  }
+});
 module.exports = app;
 // Start the server
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

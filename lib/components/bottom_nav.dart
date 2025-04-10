@@ -30,7 +30,7 @@ class _BottomNavState extends State<BottomNav> {
   static List<Widget> _widgetOptions(String userId) => <Widget>[
         HomeScreen(userId: userId),
         const ChatScreen(),
-        const OrdersScreen(),
+        OrdersScreen(userId: userId),
         const ProfileScreen(),
       ];
 
