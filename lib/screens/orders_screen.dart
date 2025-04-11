@@ -131,8 +131,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
           child: Column(
             children: [
               const Padding(
-                padding: EdgeInsets.symmetric(vertical: 20),
-                child: Center(
+                padding: EdgeInsets.symmetric(
+                    vertical: 20, horizontal: 20), // Add horizontal padding
+                child: Align(
+                  alignment: Alignment.centerLeft, // Align to the left
                   child: Text(
                     'My Orders',
                     style: TextStyle(

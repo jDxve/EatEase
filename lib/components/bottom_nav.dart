@@ -31,7 +31,7 @@ class _BottomNavState extends State<BottomNav> {
         HomeScreen(userId: userId),
         const ChatScreen(),
         OrdersScreen(userId: userId),
-        const ProfileScreen(),
+        ProfileScreen(userId: userId),
       ];
 
   void _onItemTapped(int index) {
