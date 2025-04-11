@@ -717,32 +717,56 @@ app.put("/api/update_order/:orderId", async (req, res) => {
     res.status(500).json({ error: "Server error", details: error.message });
   }
 });
-//upate user data
-app.put("/api/users/:id", async (req, res) => {
+// GET /api/users/:id - Get user data by ID
+app.get("/api/users/:id", async (req, res) => {
   const userId = req.params.id;
-  const { fullName, email, phone, password } = req.body;
 
   try {
-    // Find the user by ID
-    const user = await User.findById(userId);
+    const user = await User.findById(userId); // Do not exclude password
     if (!user) {
       return res.status(404).json({ error: "User  not found" });
     }
 
-    // Update user fields
-    if (fullName) user.fullName = fullName;
-    if (email) user.email = email;
-    if (phone) user.phone = phone;
-    if (password) {
-      user.password = await bcrypt.hash(password, 10); // Hash the new password
+    // Format the user object to a more friendly format
+    const formattedUser = {
+      id: user._id.toString(), // Convert ObjectId to string
+      fullName: user.fullName,
+      email: user.email,
+      phone: user.phone,
+      role_id: user.role_id,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+
+    res.json(formattedUser);
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+//upate user data
+app.put("/api/users/:id", async (req, res) => {
+  const userId = req.params.id;
+  const { fullName, email, phone } = req.body;
+
+  try {
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { fullName, email, phone },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ error: "User not found" });
     }
 
-    // Save the updated user
-    await user.save();
-    res.status(200).json({ message: "User  updated successfully", user });
+    res
+      .status(200)
+      .json({ message: "User updated successfully", user: updatedUser });
   } catch (error) {
-    console.error("Error updating user:", error);
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Error updating user:", error.message);
+    res.status(500).json({ error: error.message });
   }
 });
 
