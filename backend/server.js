@@ -680,6 +680,17 @@ app.put("/api/update_order/:orderId", async (req, res) => {
   const { orderId } = req.params;
   const { customerId } = req.body; // Assuming customerId is sent in the request body
 
+  console.log("Order ID:", orderId);
+  console.log("Customer ID:", customerId);
+
+  // Validate ObjectId
+  if (!mongoose.Types.ObjectId.isValid(orderId)) {
+    return res.status(400).json({ message: "Invalid order ID" });
+  }
+  if (!mongoose.Types.ObjectId.isValid(customerId)) {
+    return res.status(400).json({ message: "Invalid customer ID" });
+  }
+
   try {
     const updatedOrder = await Order.findOneAndUpdate(
       {

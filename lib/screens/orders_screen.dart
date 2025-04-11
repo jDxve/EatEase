@@ -82,12 +82,22 @@ class _OrdersScreenState extends State<OrdersScreen> {
       final String apiUrl =
           "${dotenv.env['API_BASE_URL']}/update_order/$orderId";
       print('Updating order at: $apiUrl'); // Log the API URL
+
+      // Prepare the request body with the customer ID
+      final requestBody = json.encode({
+        'customerId': widget.userId, // Ensure this is the correct customer ID
+      });
+
       final response = await http.put(
         Uri.parse(apiUrl),
         headers: {
           'Content-Type': 'application/json',
         },
+        body: requestBody, // Include the request body
       );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}'); // Log the response body
 
       if (response.statusCode == 200) {
         print('Order updated successfully');
@@ -214,6 +224,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                     ),
                                     const SizedBox(height: 30),
                                     // Button to update the order status
+                                    // Button to update the order status
+// Button to update the order status
                                     SizedBox(
                                       width: double.infinity,
                                       height: 50,
@@ -221,8 +233,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: orderStatus == 3
                                               ? Colors.red
-                                              : Colors
-                                                  .grey, // Change color if not ready
+                                              : Colors.grey,
                                           shape: RoundedRectangleBorder(
                                             borderRadius:
                                                 BorderRadius.circular(15),
@@ -230,8 +241,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                         ),
                                         onPressed: orderStatus == 3
                                             ? () {
-                                                updateOrderStatus(order[
-                                                    '_id']); // Call the update function
+                                                // Use 'id' instead of '_id'
+                                                updateOrderStatus(order['id']);
                                               }
                                             : null, // Disable button if not ready
                                         child: const Text(
