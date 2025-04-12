@@ -6,6 +6,8 @@ const cors = require("cors");
 const User = require("./models/User");
 const Restaurant = require("./models/Restaurant");
 const Paymongo = require("paymongo-node");
+const http = require("http");
+const { Server } = require("socket.io");
 
 const PORT = process.env.PORT || 5001;
 const app = express();
@@ -767,6 +769,140 @@ app.put("/api/users/:id", async (req, res) => {
   } catch (error) {
     console.error("Error updating user:", error.message);
     res.status(500).json({ error: error.message });
+  }
+});
+
+const Chat = require("./models/Chat");
+
+// --- Socket.IO Setup ---
+const server = http.createServer(app); // Create an HTTP server using your Express app
+const io = new Server(server, {
+  cors: {
+    origin: "*", // Or specify your frontend origin
+    methods: ["GET", "POST"],
+  },
+});
+
+// Socket.IO Event Handlers
+io.on("connection", (socket) => {
+  console.log("New client connected");
+
+  // Listen for incoming messages
+  socket.on("sendMessage", async ({ chatId, sender_id, message }) => {
+    try {
+      const chat = await Chat.findById(chatId);
+      if (!chat) {
+        return socket.emit("error", { message: "Chat not found" });
+      }
+
+      const newMessage = {
+        sender_id,
+        message,
+        timestamp: new Date(),
+        seen: false,
+      };
+
+      chat.messages.push(newMessage);
+      chat.last_updated = new Date();
+      await chat.save();
+
+      // Emit the new message to all clients in the chat (using rooms is recommended for scalability)
+      io.to(chatId).emit("messageReceived", chat); // Emit to a specific chat room
+    } catch (error) {
+      socket.emit("error", { message: error.message });
+    }
+  });
+
+  socket.on("joinChat", (chatId) => {
+    socket.join(chatId);
+    console.log(`Client joined chat: ${chatId}`);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("Client disconnected");
+  });
+});
+
+// Create a new chat
+app.post("/api/chats", async (req, res) => {
+  const { customer_id, restaurant_id } = req.body;
+  const newChat = new Chat({
+    customer_id,
+    restaurant_id,
+    messages: [],
+    last_updated: new Date(),
+  });
+
+  try {
+    const savedChat = await newChat.save();
+    res.status(201).json(savedChat);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Send a message
+app.post("/api/chats/:chatId/messages", async (req, res) => {
+  const { chatId } = req.params;
+  const { sender_id, message } = req.body;
+
+  try {
+    const chat = await Chat.findById(chatId);
+    if (!chat) {
+      return res.status(404).json({ message: "Chat not found" });
+    }
+
+    const newMessage = {
+      sender_id,
+      message,
+      timestamp: new Date(),
+      seen: false,
+    };
+
+    chat.messages.push(newMessage);
+    chat.last_updated = new Date();
+    await chat.save();
+
+    // Emit the new message to all clients in the chat
+    io.to(chatId).emit("messageReceived", chat); // Emit to the specific chat room
+
+    res.status(200).json(chat);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get chat by ID
+app.get("/api/chats/:chatId", async (req, res) => {
+  const { chatId } = req.params;
+
+  try {
+    const chat = await Chat.findById(chatId).populate("messages.sender_id");
+    if (!chat) {
+      return res.status(404).json({ message: "Chat not found" });
+    }
+    res.status(200).json(chat);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Fetch all chats for a user
+app.get("/api/users/:userId/chats", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const chats = await Chat.find({
+      $or: [{ customer_id: userId }, { restaurant_id: userId }],
+    }).populate("messages.sender_id");
+
+    if (!chats.length) {
+      return res.status(404).json({ message: "No chats found for this user" });
+    }
+
+    res.status(200).json(chats);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 });
 

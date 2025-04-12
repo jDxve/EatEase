@@ -19,6 +19,7 @@
     "express": "^4.21.2",
     "mongoose": "^8.13.2",
     "paymongo-node": "^10.17.0",
+    "socket.io": "^4.8.1",
     "stripe": "^17.7.0",
     "xendit-node": "^6.3.0"
   }
