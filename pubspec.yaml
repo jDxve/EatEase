@@ -31,6 +31,8 @@ dependencies:
   flutter:
     sdk: flutter
   http: ^0.13.6
+  pusher_channels_flutter: ^2.5.0
+  socket_io_client: ^3.1.1
   webview_flutter: ^4.10.0
   paymongo_sdk: ^1.7.0
   url_launcher: ^6.3.1

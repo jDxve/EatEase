@@ -5,7 +5,7 @@ const Schema = mongoose.Schema;
 const messageSchema = new Schema({
   sender_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Customer", // or "User " depending on your application
+    ref: "Users", // or "User " depending on your application
     required: true,
   },
   message: {
@@ -26,7 +26,7 @@ const messageSchema = new Schema({
 const chatSchema = new Schema({
   customer_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Customer",
+    ref: "Users",
     required: true,
   },
   restaurant_id: {

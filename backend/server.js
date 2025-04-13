@@ -676,6 +676,64 @@ app.get("/api/place_orders/:userId", async (req, res) => {
   }
 });
 
+// Get completed orders for a user
+app.get("/api/orders/:userId/completed", async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ error: "Invalid user ID format" });
+    }
+
+    const orders = await Order.find({
+      customer_id: new mongoose.Types.ObjectId(userId),
+      order_status: 4, // Completed orders
+    }).sort({ createdAt: -1 });
+
+    if (!orders || orders.length === 0) {
+      return res.status(404).json({ message: "No completed orders found" });
+    }
+
+    res.status(200).json(orders);
+  } catch (error) {
+    console.error("Error fetching completed orders:", error);
+    res.status(500).json({ error: "Server error", details: error.message });
+  }
+});
+
+// Rate an order
+app.post("/api/orders/:orderId/rate", async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { rating, userId } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      return res.status(400).json({ error: "Invalid order ID format" });
+    }
+
+    const order = await Order.findOneAndUpdate(
+      {
+        _id: orderId,
+        customer_id: userId,
+        order_status: 4, // Only allow rating completed orders
+      },
+      { rating: rating },
+      { new: true }
+    );
+
+    if (!order) {
+      return res
+        .status(404)
+        .json({ error: "Order not found or cannot be rated" });
+    }
+
+    res.status(200).json({ message: "Rating updated successfully", order });
+  } catch (error) {
+    console.error("Rating error:", error);
+    res.status(500).json({ error: "Server error", details: error.message });
+  }
+});
+
 // Update order status endpoint
 // Update order status endpoint
 app.put("/api/update_order/:orderId", async (req, res) => {
@@ -747,6 +805,29 @@ app.get("/api/users/:id", async (req, res) => {
   }
 });
 
+// GET /api/restaurants/:restaurantId
+app.get("/api/restaurants/:restaurantId", async (req, res) => {
+  try {
+    const { restaurantId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(restaurantId)) {
+      return res.status(400).json({ error: "Invalid restaurant ID format" });
+    }
+
+    const restaurant = await Restaurant.findById(restaurantId); // Assuming your Restaurant model is named "Restaurant"
+
+    if (!restaurant) {
+      return res.status(404).json({ message: "Restaurant not found" });
+    }
+
+    // Send back only the name and restaurant_photo
+    const { name, restaurant_photo } = restaurant;
+    res.status(200).json({ name, restaurant_photo });
+  } catch (error) {
+    console.error("Error fetching restaurant:", error);
+    res.status(500).json({ error: "Server error", details: error.message });
+  }
+});
 //upate user data
 app.put("/api/users/:id", async (req, res) => {
   const userId = req.params.id;
@@ -775,67 +856,81 @@ app.put("/api/users/:id", async (req, res) => {
 const Chat = require("./models/Chat");
 
 // --- Socket.IO Setup ---
-const server = http.createServer(app); // Create an HTTP server using your Express app
+const server = http.createServer(app);
+// Socket.IO setup with CORS
 const io = new Server(server, {
   cors: {
-    origin: "*", // Or specify your frontend origin
+    origin: "*",
     methods: ["GET", "POST"],
   },
 });
 
-// Socket.IO Event Handlers
+// Socket.IO connection handling
 io.on("connection", (socket) => {
-  console.log("New client connected");
+  console.log("Client connected:", socket.id);
 
-  // Listen for incoming messages
-  socket.on("sendMessage", async ({ chatId, sender_id, message }) => {
+  socket.on("joinChat", (data) => {
+    const chatId = data.chatId;
+    socket.join(chatId);
+    console.log(`Client ${socket.id} joined chat: ${chatId}`);
+  });
+
+  socket.on("sendMessage", async (data) => {
     try {
+      const { chatId, sender_id, message, timestamp } = data;
+
+      // Save message to database
       const chat = await Chat.findById(chatId);
-      if (!chat) {
-        return socket.emit("error", { message: "Chat not found" });
+      if (chat) {
+        chat.messages.push({
+          sender_id,
+          message,
+          timestamp: new Date(timestamp),
+        });
+        await chat.save();
+
+        // Broadcast to all clients in the room (including sender)
+        io.in(chatId).emit("messageReceived", {
+          sender_id,
+          message,
+          timestamp,
+        });
       }
-
-      const newMessage = {
-        sender_id,
-        message,
-        timestamp: new Date(),
-        seen: false,
-      };
-
-      chat.messages.push(newMessage);
-      chat.last_updated = new Date();
-      await chat.save();
-
-      // Emit the new message to all clients in the chat (using rooms is recommended for scalability)
-      io.to(chatId).emit("messageReceived", chat); // Emit to a specific chat room
     } catch (error) {
-      socket.emit("error", { message: error.message });
+      console.error("Error handling message:", error);
+      socket.emit("error", { message: "Failed to process message" });
     }
   });
 
-  socket.on("joinChat", (chatId) => {
-    socket.join(chatId);
-    console.log(`Client joined chat: ${chatId}`);
-  });
-
   socket.on("disconnect", () => {
-    console.log("Client disconnected");
+    console.log("Client disconnected:", socket.id);
   });
 });
-
 // Create a new chat
 app.post("/api/chats", async (req, res) => {
   const { customer_id, restaurant_id } = req.body;
-  const newChat = new Chat({
-    customer_id,
-    restaurant_id,
-    messages: [],
-    last_updated: new Date(),
-  });
 
   try {
-    const savedChat = await newChat.save();
-    res.status(201).json(savedChat);
+    const existingChat = await Chat.findOne({
+      $or: [
+        { customer_id, restaurant_id },
+        { customer_id: restaurant_id, restaurant_id: customer_id },
+      ],
+    });
+
+    if (existingChat) {
+      return res.status(200).json(existingChat);
+    } else {
+      const newChat = new Chat({
+        customer_id,
+        restaurant_id,
+        messages: [],
+        last_updated: new Date(),
+      });
+
+      const savedChat = await newChat.save();
+      res.status(201).json(savedChat);
+    }
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -864,7 +959,7 @@ app.post("/api/chats/:chatId/messages", async (req, res) => {
     await chat.save();
 
     // Emit the new message to all clients in the chat
-    io.to(chatId).emit("messageReceived", chat); // Emit to the specific chat room
+    io.to(chatId).emit("messageReceived", newMessage);
 
     res.status(200).json(chat);
   } catch (error) {
@@ -872,8 +967,29 @@ app.post("/api/chats/:chatId/messages", async (req, res) => {
   }
 });
 
+// Endpoint to get chat by user ID and restaurant ID
+app.get(
+  "/api/chats/users/:userId/restaurants/:restaurantId",
+  async (req, res) => {
+    const { userId, restaurantId } = req.params;
+
+    try {
+      const chat = await Chat.findOne({
+        customer_id: userId,
+        restaurant_id: restaurantId,
+      });
+      if (!chat) {
+        return res.status(404).json({ message: "Chat not found" });
+      }
+      res.json(chat);
+    } catch (error) {
+      res.status(500).json({ message: "Server error", error });
+    }
+  }
+);
+
 // Get chat by ID
-app.get("/api/chats/:chatId", async (req, res) => {
+app.get("/api/chats/:chatId/messages", async (req, res) => {
   const { chatId } = req.params;
 
   try {
@@ -881,7 +997,7 @@ app.get("/api/chats/:chatId", async (req, res) => {
     if (!chat) {
       return res.status(404).json({ message: "Chat not found" });
     }
-    res.status(200).json(chat);
+    res.status(200).json(chat.messages);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

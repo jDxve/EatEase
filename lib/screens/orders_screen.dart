@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'dart:async'; // Import the async package
+import 'dart:async';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:eatease/components/foodorder_card.dart';
 import 'package:eatease/components/orderstatus_indecator.dart';
+import 'package:eatease/screens/message_screen.dart';
 
 class OrdersScreen extends StatefulWidget {
   final String userId;
@@ -19,21 +20,22 @@ class OrdersScreen extends StatefulWidget {
 }
 
 class _OrdersScreenState extends State<OrdersScreen> {
-  late Timer _timer; // Declare a Timer variable
-  List<Map<String, dynamic>> _orders = []; // Store orders locally
+  late Timer _timer;
+  List<Map<String, dynamic>> _orders = [];
+  String? restaurantId; // Declare a variable to hold the restaurant ID
 
   @override
   void initState() {
     super.initState();
-    fetchOrders(); // Initial fetch
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      fetchOrders(); // Fetch orders every second
+    fetchOrders();
+    _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      fetchOrders();
     });
   }
 
   @override
   void dispose() {
-    _timer.cancel(); // Cancel the timer when the widget is disposed
+    _timer.cancel();
     super.dispose();
   }
 
@@ -52,12 +54,23 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
       print('Response status: ${response.statusCode}');
       print('Response body: ${response.body}');
-
       if (response.statusCode == 200) {
-        final List<dynamic> orders = json.decode(response.body);
+        final List<dynamic> orders = json.decode(response.body) ?? [];
         setState(() {
-          _orders =
-              orders.map((order) => order as Map<String, dynamic>).toList();
+          _orders = orders.map((order) {
+            // Extract restaurant ID directly from the order object
+            if (order['restaurantId'] != null) {
+              restaurantId = order['restaurantId']; // Extract restaurant ID
+              print('Restaurant ID: $restaurantId'); // Print restaurant ID
+            }
+            return order as Map<String, dynamic>;
+          }).toList();
+
+          // If you want to ensure restaurantId is set to the first valid restaurant ID
+          if (_orders.isNotEmpty && restaurantId == null) {
+            restaurantId = _orders.first['restaurantId'];
+            print('First Restaurant ID: $restaurantId');
+          }
         });
       } else if (response.statusCode == 404) {
         setState(() {
@@ -68,7 +81,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
       }
     } catch (e) {
       print('Error fetching orders: $e');
-      // Handle error if needed
     }
   }
 
@@ -81,11 +93,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
     try {
       final String apiUrl =
           "${dotenv.env['API_BASE_URL']}/update_order/$orderId";
-      print('Updating order at: $apiUrl'); // Log the API URL
+      print('Updating order at: $apiUrl');
 
-      // Prepare the request body with the customer ID
       final requestBody = json.encode({
-        'customerId': widget.userId, // Ensure this is the correct customer ID
+        'customerId': widget.userId,
       });
 
       final response = await http.put(
@@ -93,19 +104,17 @@ class _OrdersScreenState extends State<OrdersScreen> {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: requestBody, // Include the request body
+        body: requestBody,
       );
 
       print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}'); // Log the response body
+      print('Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         print('Order updated successfully');
-        fetchOrders(); // Refresh the orders after updating
+        fetchOrders();
       } else {
         print('Failed to update order: ${response.statusCode}');
-        print(
-            'Response body: ${response.body}'); // Log the response body for debugging
       }
     } catch (e) {
       print('Error updating order: $e');
@@ -113,8 +122,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
   }
 
   int getOrderStatusNumber(int orderStatus) {
-    // Directly use orderStatus to determine the current status
-    return orderStatus; // Assuming orderStatus is already 1, 2, or 3
+    return orderStatus;
   }
 
   @override
@@ -130,19 +138,50 @@ class _OrdersScreenState extends State<OrdersScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              const Padding(
-                padding: EdgeInsets.symmetric(
-                    vertical: 20, horizontal: 20), // Add horizontal padding
-                child: Align(
-                  alignment: Alignment.centerLeft, // Align to the left
-                  child: Text(
-                    'My Orders',
-                    style: TextStyle(
-                      fontSize: 23,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'My Orders',
+                        style: TextStyle(
+                          fontSize: 23,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
-                  ),
+                    IconButton(
+                      icon: SizedBox(
+                        height: 25,
+                        width: 25,
+                        child: ColorFiltered(
+                          colorFilter:
+                              ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                          child: Image.asset('assets/images/chat.png'),
+                        ),
+                      ),
+                      onPressed: () {
+                        if (restaurantId != null) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => MessageScreen(
+                                userId: widget.userId,
+                                restaurantId: restaurantId!,
+                              ),
+                            ),
+                          );
+                        } else {
+                          print('Restaurant ID is not available');
+                        }
+                      },
+                    )
+                  ],
                 ),
               ),
               Expanded(
@@ -171,8 +210,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                           itemBuilder: (context, index) {
                             final order = _orders[index];
                             final items = order['items'] as List;
-                            final orderStatus = order[
-                                'orderStatus']; // Get order status directly
+                            final orderStatus = order['orderStatus'];
 
                             return Card(
                               margin: const EdgeInsets.symmetric(vertical: 8),
@@ -183,7 +221,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // Order ID and Total Amount
                                     Text(
                                       'Order #${order['order_id']}',
                                       style: const TextStyle(
@@ -199,13 +236,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                       ),
                                     ),
                                     const SizedBox(height: 10),
-                                    // Order Status Indicator
                                     OrderStatusIndicator(
-                                      currentStatus: getOrderStatusNumber(
-                                          orderStatus), // Pass the order status
+                                      currentStatus:
+                                          getOrderStatusNumber(orderStatus),
                                     ),
                                     const SizedBox(height: 10),
-                                    // Scrollable list of items
                                     Container(
                                       height: 300,
                                       child: SingleChildScrollView(
@@ -225,9 +260,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                       ),
                                     ),
                                     const SizedBox(height: 30),
-                                    // Button to update the order status
-                                    // Button to update the order status
-// Button to update the order status
                                     SizedBox(
                                       width: double.infinity,
                                       height: 50,
@@ -243,10 +275,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                         ),
                                         onPressed: orderStatus == 3
                                             ? () {
-                                                // Use 'id' instead of '_id'
                                                 updateOrderStatus(order['id']);
                                               }
-                                            : null, // Disable button if not ready
+                                            : null,
                                         child: const Text(
                                           'Mark as Picked Up',
                                           style: TextStyle(
