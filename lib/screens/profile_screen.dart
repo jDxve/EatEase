@@ -3,6 +3,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart'; // If you're using .env files
 import 'package:eatease/components/orderhistory_card.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Import shared_preferences
+import 'package:eatease/screens/signin_screen.dart'; // Import your SignInScreen
 
 class ProfileScreen extends StatefulWidget {
   final String userId;
@@ -92,7 +94,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Rating submitted successfully')),
         );
-        _fetchOrderHistory(); // Refresh the order history
+ _fetchOrderHistory(); // Refresh the order history
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to submit rating')),
@@ -104,6 +106,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SnackBar(content: Text('Error submitting rating')),
       );
     }
+  }
+
+  Future<void> _logout() async {
+    // Clear user session (e.g., remove token from shared preferences)
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.remove('userToken'); // Adjust the key as necessary
+
+    // Show a confirmation message
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Logged out successfully')),
+    );
+
+    // Navigate to the login screen and remove all previous routes
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => SignInScreen()), // Replace with your login screen widget
+      (Route<dynamic> route) => false,
+    );
   }
 
   @override
@@ -138,9 +157,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Icons.logout,
                         color: Colors.white,
                       ),
-                      onPressed: () {
-                        // Logout logic here
-                      },
+                      onPressed: _logout, // Call the logout function
                     ),
                   ],
                 ),
@@ -236,7 +253,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 children: items.map((item) {
                                   return OrderHistoryCard(
                                     name: item['name'] ?? '',
-                                    imageUrl: item['image'] ?? '',
+                                    imageUrl : item['image'] ?? '',
                                     price: (item['price'] ?? 0).toDouble(),
                                     quantity: item['quantity'] ?? 0,
                                     orderDate: order['orderDate'] ?? '',
@@ -272,8 +289,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Row(
       children: [
         Icon(
-          icon,
-          color: Colors.black,
+          icon, color: Colors.black,
         ),
         const SizedBox(width: 15),
         Expanded(
@@ -333,7 +349,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 TextFormField(
                   initialValue: _email,
                   decoration: const InputDecoration(labelText: 'Email'),
-                  onChanged: (value) => _newEmail = value, // Corrected here
+                  onChanged: (value) => _newEmail = value,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your email';

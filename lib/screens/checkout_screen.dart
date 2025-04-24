@@ -40,8 +40,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> fetchRestaurantDetails() async {
-    final String apiUrl =
-        "${dotenv.env['API_BASE_URL']}/restaurants/${widget.restaurantId}";
+      final String apiUrl =
+          "${dotenv.env['API_BASE_URL']}/restaurants/${widget.restaurantId}";
 
     try {
       final response = await http.get(Uri.parse(apiUrl));

@@ -1022,6 +1022,57 @@ app.get("/api/users/:userId/chats", async (req, res) => {
   }
 });
 
+// Fetch all contacts for a user
+app.get("/api/users/:userId/contacts", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    // Find all chats where the user is either customer or restaurant
+    const chats = await Chat.find({
+      $or: [{ customer_id: userId }, { restaurant_id: userId }],
+    })
+      .populate("restaurant_id", "name") // Populate restaurant details
+      .populate("customer_id", "name") // Populate customer details
+      .sort({ last_updated: -1 }); // Sort by most recent
+
+    if (!chats.length) {
+      return res.status(200).json({ contacts: [] });
+    }
+
+    // Format the response
+    const contacts = chats.map((chat) => {
+      const lastMessage =
+        chat.messages.length > 0
+          ? chat.messages[chat.messages.length - 1]
+          : null;
+      const isCustomer = chat.customer_id._id.toString() === userId;
+
+      return {
+        chatId: chat._id,
+        contactId: isCustomer ? chat.restaurant_id._id : chat.customer_id._id,
+        contactName: isCustomer
+          ? chat.restaurant_id.name
+          : chat.customer_id.name,
+        lastMessage: lastMessage ? lastMessage.message : "",
+        lastMessageTime: lastMessage
+          ? lastMessage.timestamp
+          : chat.last_updated,
+        unreadCount: chat.messages.filter(
+          (msg) => !msg.seen && msg.sender_id.toString() !== userId
+        ).length,
+      };
+    });
+
+    res.status(200).json({ contacts });
+  } catch (error) {
+    console.error("Error fetching contacts:", error);
+    res.status(500).json({
+      message: "Error fetching contacts",
+      error: error.message,
+    });
+  }
+});
+
 module.exports = app;
 // Start the server
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

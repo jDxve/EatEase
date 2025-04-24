@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'dart:async';
 
 class MessageScreen extends StatefulWidget {
   final String userId;
@@ -29,34 +30,55 @@ class _MessageScreenState extends State<MessageScreen> {
   String? _chatId;
   bool _isChatIdLoading = true;
   bool _isConnected = false;
+  Timer? _refreshTimer;
+  bool _showScrollToBottom = false;
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_scrollListener);
     _fetchRestaurantDetails();
-    _initializeSocket(); // Move this before _getOrCreateChatId
+    _initializeSocket();
     _getOrCreateChatId().then((_) {
       if (_chatId != null) {
-        _loadInitialMessages();
+        _fetchLatestMessages();
+        _refreshTimer = Timer.periodic(const Duration(milliseconds: 1), (timer) {
+          if (mounted && _chatId != null) {
+            _fetchLatestMessages();
+          }
+        });
       }
     });
   }
 
+  void _scrollListener() {
+    if (_scrollController.hasClients) {
+      setState(() {
+        _showScrollToBottom = _scrollController.position.pixels !=
+            _scrollController.position.maxScrollExtent;
+      });
+    }
+  }
+
   @override
   void dispose() {
+    _refreshTimer?.cancel();
     socket.dispose();
     _controller.dispose();
+    _scrollController.removeListener(_scrollListener);
     _scrollController.dispose();
     super.dispose();
   }
 
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 100),
-        curve: Curves.easeOut,
-      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+        );
+      });
     }
   }
 
@@ -85,7 +107,6 @@ class _MessageScreenState extends State<MessageScreen> {
       setState(() => _isConnected = false);
     });
 
-    // Update the message received handler
     socket.on('messageReceived', (data) {
       print('Received message: $data');
       if (data != null && data['sender_id'] != widget.userId) {
@@ -99,12 +120,52 @@ class _MessageScreenState extends State<MessageScreen> {
           _messages.sort((a, b) =>
               (a['timestamp'] as num).compareTo(b['timestamp'] as num));
         });
-        _scrollToBottom();
+        Future.delayed(const Duration(milliseconds: 100), () {
+          _scrollToBottom();
+        });
       }
     });
 
     socket.onError((error) => print('Socket Error: $error'));
     socket.onConnectError((error) => print('Connect Error: $error'));
+  }
+
+  Future<void> _fetchLatestMessages() async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+          '${dotenv.env['API_BASE_URL']}/chats/users/${widget.userId}/restaurants/${widget.restaurantId}',
+        ),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List<dynamic> fetchedMessages = data['messages'] ?? [];
+
+        if (fetchedMessages.length != _messages.length) {
+          setState(() {
+            _messages.clear();
+            _messages.addAll(fetchedMessages.map<Map<String, dynamic>>((msg) {
+              return {
+                'sender_id': msg['sender_id'],
+                'message': msg['message'],
+                'timestamp': msg['timestamp'] != null
+                    ? DateTime.parse(msg['timestamp']).millisecondsSinceEpoch
+                    : DateTime.now().millisecondsSinceEpoch,
+              };
+            }).toList());
+            _messages.sort((a, b) =>
+                (a['timestamp'] as num).compareTo(b['timestamp'] as num));
+          });
+          Future.delayed(const Duration(milliseconds: 100), () {
+            _scrollToBottom();
+          });
+        }
+      }
+    } catch (e) {
+      print('Error fetching latest messages: $e');
+    }
   }
 
   Future<Map<String, dynamic>?> _fetchExistingChat() async {
@@ -129,49 +190,15 @@ class _MessageScreenState extends State<MessageScreen> {
     }
   }
 
-  void _loadInitialMessagesFromChat(Map<String, dynamic> chatData) {
-    if (chatData['messages'] != null && mounted) {
-      List<dynamic> fetchedMessages = chatData['messages'];
-      setState(() {
-        _messages.clear();
-        _messages.addAll(fetchedMessages.map<Map<String, dynamic>>((msg) {
-          return {
-            'sender_id': msg['sender_id'],
-            'message': msg['message'],
-            'timestamp':
-                msg['timestamp'] ?? DateTime.now().millisecondsSinceEpoch,
-          };
-        }).toList());
-        _messages.sort(
-            (a, b) => (a['timestamp'] as num).compareTo(b['timestamp'] as num));
-      });
-      _scrollToBottom();
-    }
-  }
-
-  void _addMessage(Map<String, dynamic> data) {
-    if (mounted) {
-      setState(() {
-        _messages.add({
-          'sender_id': data['sender_id'],
-          'message': data['message'],
-          'timestamp':
-              data['timestamp'] ?? DateTime.now().millisecondsSinceEpoch,
-        });
-        _messages.sort(
-            (a, b) => (a['timestamp'] as num).compareTo(b['timestamp'] as num));
-      });
-      _scrollToBottom();
-    }
-  }
-
   Future<void> _getOrCreateChatId() async {
     final existingChat = await _fetchExistingChat();
     if (existingChat != null) {
-      _chatId = existingChat['_id'];
-      _isChatIdLoading = false;
+      setState(() {
+        _chatId = existingChat['_id'];
+        _isChatIdLoading = false;
+      });
       socket.emit('joinChat', _chatId);
-      _loadInitialMessagesFromChat(existingChat);
+      await _fetchLatestMessages();
     } else {
       await _createChatId();
     }
@@ -190,54 +217,17 @@ class _MessageScreenState extends State<MessageScreen> {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = json.decode(response.body);
-        _chatId = data['_id'];
+        setState(() {
+          _chatId = data['_id'];
+          _isChatIdLoading = false;
+        });
         socket.emit('joinChat', _chatId);
       }
     } catch (e) {
       print('Error creating chat ID: $e');
-    } finally {
       setState(() {
         _isChatIdLoading = false;
       });
-    }
-  }
-
-  Future<void> _loadInitialMessages() async {
-    if (_chatId == null) return;
-
-    try {
-      final response = await http.get(
-        Uri.parse('${dotenv.env['API_BASE_URL']}/chats/$_chatId/messages'),
-        headers: {'Content-Type': 'application/json'},
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        _loadMessagesFromResponse(data);
-      }
-    } catch (e) {
-      print('Error loading initial messages: $e');
-    }
-  }
-
-  void _loadMessagesFromResponse(Map<String, dynamic> data) {
-    if (data != null) {
-      List<dynamic> fetchedMessages =
-          data is List ? data : data['messages'] ?? [];
-      setState(() {
-        _messages.clear();
-        _messages.addAll(fetchedMessages.map<Map<String, dynamic>>((msg) {
-          return {
-            'sender_id': msg['sender_id'],
-            'message': msg['message'],
-            'timestamp':
-                msg['timestamp'] ?? DateTime.now().millisecondsSinceEpoch,
-          };
-        }).toList());
-        _messages.sort(
-            (a, b) => (a['timestamp'] as num).compareTo(b['timestamp'] as num));
-      });
-      _scrollToBottom();
     }
   }
 
@@ -268,6 +258,7 @@ class _MessageScreenState extends State<MessageScreen> {
       _controller.clear();
 
       try {
+        setState(() => _isSending = true);
         await _saveMessageToDatabase(message);
         socket.emit('sendMessage', {
           'chatId': _chatId,
@@ -277,6 +268,8 @@ class _MessageScreenState extends State<MessageScreen> {
         });
       } catch (e) {
         print('Error sending message: $e');
+      } finally {
+        setState(() => _isSending = false);
       }
     }
   }
@@ -289,7 +282,9 @@ class _MessageScreenState extends State<MessageScreen> {
         'timestamp': DateTime.now().millisecondsSinceEpoch,
       });
     });
-    _scrollToBottom();
+    Future.delayed(const Duration(milliseconds: 100), () {
+      _scrollToBottom();
+    });
   }
 
   Future<void> _saveMessageToDatabase(String message) async {
@@ -352,16 +347,38 @@ class _MessageScreenState extends State<MessageScreen> {
         children: [
           const Divider(color: Colors.grey, height: 1, thickness: 1),
           Expanded(
-            child: _isChatIdLoading
-                ? const Center(child: CircularProgressIndicator())
-                : ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.all(8),
-                    itemCount: _messages.length,
-                    itemBuilder: (context, index) {
-                      return _buildMessage(_messages[index]);
-                    },
+            child: Stack(
+              children: [
+                _isChatIdLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : RefreshIndicator(
+                        onRefresh: _fetchLatestMessages,
+                        child: ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.all(8),
+                          itemCount: _messages.length,
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          itemBuilder: (context, index) {
+                            return _buildMessage(_messages[index]);
+                          },
+                        ),
+                      ),
+                if (_showScrollToBottom)
+                  Positioned(
+                    right: 16,
+                    bottom: 8,
+                    child: FloatingActionButton(
+                      mini: true,
+                      backgroundColor: Colors.red,
+                      onPressed: _scrollToBottom,
+                      child: const Icon(
+                        Icons.arrow_downward,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
+              ],
+            ),
           ),
           _buildMessageInput(),
         ],

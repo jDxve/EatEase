@@ -28,7 +28,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
   void initState() {
     super.initState();
     fetchOrders();
-    _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       fetchOrders();
     });
   }

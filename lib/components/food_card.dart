@@ -11,6 +11,7 @@ class FoodCard extends StatelessWidget {
   final int category;
   final VoidCallback onAdd;
   final VoidCallback onTap;
+  final double rating;
 
   const FoodCard({
     Key? key,
@@ -20,6 +21,7 @@ class FoodCard extends StatelessWidget {
     required this.category,
     required this.onAdd,
     required this.onTap,
+    required this.rating,
   }) : super(key: key);
 
   @override
@@ -186,9 +188,15 @@ class _FoodListState extends State<FoodList> {
                     return FoodCard(
                       imageUrl: food["image_url"],
                       title: food["name"],
+                      rating: (food['rating'] is int)
+                          ? (food['rating'] as int).toDouble()
+                          : (food['rating'] ?? 0.0),
                       price: (food["price"] is int)
-                          ? (food["price"] as int).toDouble()
-                          : food["price"],
+                          ? (food["price"] as int)
+                              .toDouble() // Convert int to double
+                          : (food["price"] is double)
+                              ? food["price"] // Already a double
+                              : 0.0,
                       category: food["category_id"],
                       onAdd: () {
                         Navigator.push(
@@ -207,6 +215,9 @@ class _FoodListState extends State<FoodList> {
                               userId: widget.userId,
                               restaurantId: widget.restaurantId,
                               categoryName: food['category_name'] ?? 'All',
+                              rating: (food['rating'] is int)
+                                  ? (food['rating'] as int).toDouble()
+                                  : (food['rating'] ?? 0.0),
                             ),
                           ),
                         );
@@ -223,12 +234,19 @@ class _FoodListState extends State<FoodList> {
                               imageUrl: food["image_url"],
                               price: (food["price"] is int)
                                   ? (food["price"] as int).toDouble()
-                                  : food["price"],
+                                  : (food["price"] is double)
+                                      ? food["price"]
+                                      : 0.0, // Default value if price is not int or double
                               description: food["description"],
-                              userId: widget
-                                  .userId, // Pass userId to MenudetailesScreen
+                              userId: widget.userId,
                               restaurantId: widget.restaurantId,
                               categoryName: food['category_name'] ?? 'All',
+                              rating: (food['rating'] is int)
+                                  ? (food['rating'] as int)
+                                      .toDouble() // Convert int to double
+                                  : (food['rating'] is double)
+                                      ? food['rating'] // Already a double
+                                      : 0.0, // Default value if rating is not int or double
                             ),
                           ),
                         );

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class OrderHistoryCard extends StatelessWidget {
+class OrderHistoryCard extends StatefulWidget {
   final String name;
   final String imageUrl;
   final double price;
@@ -8,7 +8,7 @@ class OrderHistoryCard extends StatelessWidget {
   final String orderDate;
   final int rating;
   final bool isRated;
-  final int ratingCount; // Add this
+  final int ratingCount;
   final Function(int) onRatingChanged;
 
   const OrderHistoryCard({
@@ -20,9 +20,22 @@ class OrderHistoryCard extends StatelessWidget {
     required this.orderDate,
     this.rating = 0,
     this.isRated = false,
-    this.ratingCount = 0, // Add this
+    this.ratingCount = 0,
     required this.onRatingChanged,
   }) : super(key: key);
+
+  @override
+  _OrderHistoryCardState createState() => _OrderHistoryCardState();
+}
+
+class _OrderHistoryCardState extends State<OrderHistoryCard> {
+  late int _currentRating;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentRating = widget.rating;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +43,7 @@ class OrderHistoryCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 5),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isRated ? Colors.grey[50] : Colors.white,
+        color: widget.isRated ? Colors.grey[50] : Colors.white,
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
@@ -49,7 +62,7 @@ class OrderHistoryCard extends StatelessWidget {
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: Image.network(
-                  imageUrl,
+                  widget.imageUrl,
                   width: 80,
                   height: 80,
                   fit: BoxFit.cover,
@@ -71,21 +84,21 @@ class OrderHistoryCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      name,
+                      widget.name,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: isRated ? Colors.grey[700] : Colors.black,
+                        color: widget.isRated ? Colors.grey[700] : Colors.black,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Ordered on $orderDate',
+                      'Ordered on ${widget.orderDate}',
                       style: TextStyle(
                         fontSize: 13,
-                        color: isRated ? Colors.grey[600] : Colors.grey,
+                        color: widget.isRated ? Colors.grey[600] : Colors.grey,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -93,11 +106,12 @@ class OrderHistoryCard extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          '₱${price.toStringAsFixed(2)}',
+                          '₱${widget.price.toStringAsFixed(2)}',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: isRated ? Colors.red[300] : Colors.red,
+                            color:
+                                widget.isRated ? Colors.red[300] : Colors.red,
                           ),
                         ),
                         Container(
@@ -106,14 +120,15 @@ class OrderHistoryCard extends StatelessWidget {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: (isRated ? Colors.red[100] : Colors.red)
-                                ?.withOpacity(0.1),
+                            color:
+                                (widget.isRated ? Colors.red[100] : Colors.red)
+                                    ?.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            'x$quantity',
+                            'x${widget.quantity}',
                             style: TextStyle(
-                              color: isRated
+                              color: widget.isRated
                                   ? Colors.red[300]
                                   : Colors.red.shade700,
                               fontWeight: FontWeight.w500,
@@ -132,20 +147,28 @@ class OrderHistoryCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
-                children: List.generate(5, (index) {
-                  return GestureDetector(
-                    onTap: isRated ? null : () => onRatingChanged(index + 1),
+                children: List.generate(
+                  5,
+                  (index) => GestureDetector(
+                    onTap: widget.isRated
+                        ? null
+                        : () {
+                            setState(() {
+                              _currentRating = index + 1;
+                            });
+                            widget.onRatingChanged(_currentRating);
+                          },
                     child: Icon(
-                      index < rating ? Icons.star : Icons.star_border,
-                      color: isRated ? Colors.amber[300] : Colors.amber,
+                      index < _currentRating ? Icons.star : Icons.star_border,
+                      color: widget.isRated ? Colors.amber[300] : Colors.amber,
                       size: 24,
                     ),
-                  );
-                }),
+                  ),
+                ),
               ),
-              if (isRated)
+              if (widget.isRated)
                 Text(
-                  '$ratingCount ${ratingCount == 1 ? 'rating' : 'ratings'}',
+                  '${widget.ratingCount} ${widget.ratingCount == 1 ? 'rating' : 'ratings'}',
                   style: TextStyle(
                     color: Colors.grey[600],
                     fontSize: 14,

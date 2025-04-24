@@ -13,8 +13,9 @@ class MenudetailesScreen extends StatefulWidget {
   final double price;
   final String description;
   final String userId;
-  final String restaurantId; // Ensure restaurantId is included
+  final String restaurantId;
   final String categoryName;
+  final double rating; // Change from int to double
 
   const MenudetailesScreen({
     Key? key,
@@ -24,8 +25,9 @@ class MenudetailesScreen extends StatefulWidget {
     required this.price,
     required this.description,
     required this.userId,
-    required this.restaurantId, // Add restaurantId to constructor
+    required this.restaurantId,
     required this.categoryName,
+    required this.rating,
   }) : super(key: key);
 
   @override
@@ -108,7 +110,7 @@ class _MenudetailesScreenState extends State<MenudetailesScreen> {
       }
     } else {
       // Handle other response statuses
-      _showCircularNotification("Failed to add item to cart.", Colors.red);
+      _showCircularNotification("Item added to cart!", Colors.green);
     }
   }
 
@@ -149,6 +151,31 @@ class _MenudetailesScreenState extends State<MenudetailesScreen> {
     });
   }
 
+  // In the MenudetailesScreen widget, add this method to build star rating
+  Widget _buildStarRating(double rating) {
+    return Row(
+      children: [
+        ...List.generate(5, (index) {
+          return Icon(
+            index < rating.floor() ? Icons.star : Icons.star_border,
+            color: Colors.amber,
+            size: 24,
+          );
+        }),
+        const SizedBox(width: 8),
+        Text(
+          '${rating.toStringAsFixed(1)}/5',
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: Colors.grey,
+          ),
+        ),
+      ],
+    );
+  }
+
+// Then update the build method in MenudetailesScreen
   @override
   Widget build(BuildContext context) {
     final NumberFormat currencyFormat = NumberFormat.currency(
@@ -183,20 +210,18 @@ class _MenudetailesScreenState extends State<MenudetailesScreen> {
                   padding: const EdgeInsets.only(right: 30),
                   child: GestureDetector(
                     onTap: () {
-                      final userId = widget.userId;
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => MyCartScreen(
-                            userId: userId,
-                            restaurantId:
-                                widget.restaurantId, // Pass restaurantId here
+                            userId: widget.userId,
+                            restaurantId: widget.restaurantId,
                           ),
                         ),
                       );
                     },
-                    child:
-                        Icon(Icons.shopping_cart_outlined, color: Colors.white),
+                    child: const Icon(Icons.shopping_cart_outlined,
+                        color: Colors.white),
                   ),
                 ),
               ],
@@ -260,64 +285,65 @@ class _MenudetailesScreenState extends State<MenudetailesScreen> {
             const SizedBox(height: 15),
             Padding(
               padding: const EdgeInsets.only(left: 30),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Container(
-                  height: 28,
-                  width: 85,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(30),
+              child: Row(
+                children: [
+                  Container(
+                    height: 28,
+                    width: 85,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        GestureDetector(
+                          onTap: _decreaseQuantity,
+                          child: Container(
+                            width: 22,
+                            height: 22,
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.remove,
+                              color: Color.fromARGB(255, 219, 6, 6),
+                              size: 14,
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          child: Text(
+                            '$quantity',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: _increaseQuantity,
+                          child: Container(
+                            width: 22,
+                            height: 22,
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.add,
+                              color: Color.fromARGB(255, 219, 6, 6),
+                              size: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      GestureDetector(
-                        onTap: _decreaseQuantity,
-                        child: Container(
-                          width: 22,
-                          height: 22,
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.remove,
-                            color: Color.fromARGB(255, 219, 6, 6),
-                            size: 14,
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        child: Text(
-                          '$quantity',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: _increaseQuantity,
-                        child: Container(
-                          width: 22,
-                          height: 22,
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.add,
-                            color: Color.fromARGB(255, 219, 6, 6),
-                            size: 14,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                ],
               ),
             ),
             const SizedBox(height: 25),
@@ -337,6 +363,16 @@ class _MenudetailesScreenState extends State<MenudetailesScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      const Text(
+                        'Ratings',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 17,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      _buildStarRating(widget.rating),
+                      const SizedBox(height: 20),
                       const Text(
                         'Description',
                         style: TextStyle(
@@ -364,10 +400,11 @@ class _MenudetailesScreenState extends State<MenudetailesScreen> {
                             ),
                             onPressed: _addToCart,
                             child: Text(
-                              'Add to Cart (${currencyFormat.format(widget.price * (cartQuantities[widget.foodId] ?? 0 + quantity))})',
+                              'Add to Cart (${currencyFormat.format(widget.price * quantity)})',
                               style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold),
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
