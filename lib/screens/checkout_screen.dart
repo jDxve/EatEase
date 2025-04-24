@@ -40,8 +40,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> fetchRestaurantDetails() async {
-      final String apiUrl =
-          "${dotenv.env['API_BASE_URL']}/restaurants/${widget.restaurantId}";
+    final String apiUrl =
+        "${dotenv.env['API_BASE_URL']}/restaurants/${widget.restaurantId}";
 
     try {
       final response = await http.get(Uri.parse(apiUrl));
@@ -142,7 +142,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         case 0:
           paymentMethod = 'cash';
           await _processCashPayment();
-          await _savePaymentInfo(paymentMethod); // Save payment info
+          await _savePaymentInfo(paymentMethod);
           return;
         case 1:
           paymentMethod = 'gcash';
@@ -161,7 +161,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           context: context,
           barrierDismissible: false,
           builder: (BuildContext context) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           },
         );
 
@@ -187,12 +187,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   onComplete: (success) async {
                     paymentComplete = success;
                     if (success) {
-                      await _processCashPayment();
-                      await _savePaymentInfo(
-                          paymentMethod!); // Save payment info
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Payment successful!')),
-                      );
+                      try {
+                        await _processCashPayment();
+                        await _savePaymentInfo(paymentMethod!);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Payment successful!')),
+                        );
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error saving payment: $e')),
+                        );
+                      }
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -203,8 +208,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ),
               ),
             );
-
-            // Payment status checking logic remains the same...
           }
         } catch (e) {
           Navigator.pop(context);
@@ -224,24 +227,43 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     try {
       final String apiUrl = "${dotenv.env['API_BASE_URL']}/payments";
 
+      final Map<String, dynamic> requestBody = {
+        'customer_id': widget.userId,
+        'restaurant_id': widget.restaurantId,
+        'payment_method': paymentMethod,
+        'amount': calculateTotalAmount()
+      };
+
+      print(
+          'Sending payment request with body: ${json.encode(requestBody)}'); // Debug log
+
       final response = await http.post(
         Uri.parse(apiUrl),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'order_id': foodItems
-              .first['order_id'], // Assuming you have access to the order ID
-          'customer_id': widget.userId,
-          'restaurant_id': widget.restaurantId,
-          'payment_method': paymentMethod,
-          'amount': calculateTotalAmount(),
-        }),
+        body: json.encode(requestBody),
       );
 
-      if (response.statusCode != 201) {
-        print('Failed to save payment information: ${response.body}');
+      print('Response status: ${response.statusCode}'); // Debug log
+      print('Response body: ${response.body}'); // Debug log
+
+      if (response.statusCode == 201) {
+        print('Payment information saved successfully');
+        final responseData = json.decode(response.body);
+        if (responseData['success'] == true) {
+          print(
+              'Payment record created with ID: ${responseData['data']['_id']}');
+        }
+      } else {
+        print('Failed to save payment. Status code: ${response.statusCode}');
+        print('Response body: ${response.body}');
+        throw Exception('Failed to save payment information: ${response.body}');
       }
     } catch (e) {
       print('Error saving payment information: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error saving payment: $e')),
+      );
+      throw e;
     }
   }
 

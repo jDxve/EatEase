@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
+const { ObjectId } = mongoose.Types;
 const bcrypt = require("bcrypt");
 const cors = require("cors");
 const User = require("./models/User");
@@ -600,16 +601,29 @@ app.get("/api/payment-status/:id", async (req, res) => {
 
 app.post("/api/payments", async (req, res) => {
   try {
-    const { order_id, customer_id, restaurant_id, payment_method, amount } =
+    const { customer_id, restaurant_id, payment_method, amount } =
       req.body;
 
-    // Convert string IDs to MongoDB ObjectIds
+    // Validate required fields
+    if (
+      !customer_id ||
+      !restaurant_id ||
+      !payment_method ||
+      !amount
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: "Missing required fields",
+      });
+    }
+
+    // Create new payment document
     const payment = new Payment({
-      order_id: mongoose.Types.ObjectId(order_id),
-      customer_id: mongoose.Types.ObjectId(customer_id),
-      restaurant_id: mongoose.Types.ObjectId(restaurant_id),
+      customer_id: new ObjectId(customer_id),
+      restaurant_id: new ObjectId(restaurant_id),
       payment_method,
-      amount: parseFloat(amount), // Ensure amount is a number
+      amount: parseFloat(amount),
+      transaction_date: new Date(),
     });
 
     const savedPayment = await payment.save();
@@ -620,7 +634,6 @@ app.post("/api/payments", async (req, res) => {
     });
   } catch (err) {
     console.error("Error creating payment record:", err);
-    // Send more detailed error information
     res.status(500).json({
       success: false,
       error: err.message || "Failed to create payment record",
