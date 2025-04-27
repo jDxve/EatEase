@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-
+import 'package:eatease/screens/forgotpass_screen.dart';
 
 final String apiUrl = "${dotenv.env['API_BASE_URL']}/users/login";
 
@@ -263,7 +263,7 @@ class _SignInScreenState extends State<SignInScreen> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => SignupScreen()),
+                MaterialPageRoute(builder: (context) => ForgotPasswordScreen()),
               );
             },
             style: TextButton.styleFrom(

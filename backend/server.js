@@ -601,16 +601,10 @@ app.get("/api/payment-status/:id", async (req, res) => {
 
 app.post("/api/payments", async (req, res) => {
   try {
-    const { customer_id, restaurant_id, payment_method, amount } =
-      req.body;
+    const { customer_id, restaurant_id, payment_method, amount } = req.body;
 
     // Validate required fields
-    if (
-      !customer_id ||
-      !restaurant_id ||
-      !payment_method ||
-      !amount
-    ) {
+    if (!customer_id || !restaurant_id || !payment_method || !amount) {
       return res.status(400).json({
         success: false,
         error: "Missing required fields",
@@ -1083,6 +1077,148 @@ app.get("/api/users/:userId/contacts", async (req, res) => {
       message: "Error fetching contacts",
       error: error.message,
     });
+  }
+});
+
+const nodemailer = require("nodemailer");
+const crypto = require("crypto");
+const PasswordReset = require("./models/passwordReset");
+
+// Configure nodemailer transporter
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false,
+  auth: {
+    user: "eatease9@gmail.com", // Direct email
+    pass: "axfc tvhb bhgy ngkt", // Direct app password
+  },
+  tls: {
+    rejectUnauthorized: false,
+  },
+});
+
+// Verify transporter
+transporter.verify((error, success) => {
+  if (error) {
+    console.error("Transporter verification error:", error);
+  } else {
+    console.log("Email transporter is ready");
+  }
+});
+
+// Generate 6-digit code
+function generateVerificationCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// Request verification code route
+app.post("/api/auth/request-verification-code", async (req, res) => {
+  try {
+    const { email } = req.body;
+    console.log("Request received for email:", email);
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const verificationCode = generateVerificationCode();
+    console.log("Generated code:", verificationCode);
+
+    // Save to database
+    await PasswordReset.findOneAndUpdate(
+      { email },
+      {
+        email,
+        code: verificationCode,
+        expires: new Date(Date.now() + 600000), // 10 minutes
+        verified: false,
+      },
+      { upsert: true, new: true }
+    );
+
+    // Send email
+    const mailOptions = {
+      from: {
+        name: "EatEase",
+        address: "eatease9@gmail.com",
+      },
+      to: email,
+      subject: "Password Reset Verification Code",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #FF4444;">Password Reset Verification Code</h2>
+          <p>Your verification code is:</p>
+          <div style="background-color: #f4f4f4; padding: 15px; text-align: center; font-size: 24px; letter-spacing: 5px; margin: 20px 0;">
+            <strong>${verificationCode}</strong>
+          </div>
+          <p>This code will expire in 10 minutes.</p>
+        </div>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log("Verification email sent successfully");
+
+    res.status(200).json({ message: "Verification code sent successfully" });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: "Failed to send verification code" });
+  }
+});
+
+// Verify code route
+app.post("/api/auth/verify-code", async (req, res) => {
+  try {
+    const { email, code } = req.body;
+
+    const resetRequest = await PasswordReset.findOne({
+      email,
+      code,
+      expires: { $gt: Date.now() },
+    });
+
+    if (!resetRequest) {
+      return res.status(400).json({ error: "Invalid or expired code" });
+    }
+
+    resetRequest.verified = true;
+    await resetRequest.save();
+
+    res.status(200).json({ message: "Code verified successfully" });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: "Failed to verify code" });
+  }
+});
+
+// Reset password route
+app.post("/api/auth/reset-password", async (req, res) => {
+  try {
+    const { email, code, new_password } = req.body;
+
+    const resetRequest = await PasswordReset.findOne({
+      email,
+      code,
+      verified: true,
+      expires: { $gt: Date.now() },
+    });
+
+    if (!resetRequest) {
+      return res.status(400).json({ error: "Invalid or expired code" });
+    }
+
+    const hashedPassword = await bcrypt.hash(new_password, 10);
+    await User.findOneAndUpdate({ email }, { password: hashedPassword });
+
+    await PasswordReset.deleteOne({ _id: resetRequest._id });
+
+    res.status(200).json({ message: "Password reset successful" });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: "Failed to reset password" });
   }
 });
 
