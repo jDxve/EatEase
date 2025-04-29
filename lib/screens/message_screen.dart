@@ -291,15 +291,30 @@ class _MessageScreenState extends State<MessageScreen> {
                       ),
                 if (_showScrollToBottom)
                   Positioned(
-                    right: 16,
+                    left: 0,
+                    right: 0,
                     bottom: 8,
-                    child: FloatingActionButton(
-                      mini: true,
-                      backgroundColor: Colors.red,
-                      onPressed: _scrollToBottom,
-                      child: const Icon(
-                        Icons.arrow_downward,
-                        color: Colors.white,
+                    child: Center(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: FloatingActionButton(
+                          mini: true,
+                          backgroundColor: Colors.red,
+                          onPressed: _scrollToBottom,
+                          child: const Icon(
+                            Icons.arrow_downward,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -354,7 +369,7 @@ class _MessageScreenState extends State<MessageScreen> {
               ),
             ),
           ),
-          if (isUserMessage) const SizedBox(width: 8), // Fixed here
+          if (isUserMessage) const SizedBox(width: 8),
         ],
       ),
     );

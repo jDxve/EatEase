@@ -94,7 +94,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Rating submitted successfully')),
         );
- _fetchOrderHistory(); // Refresh the order history
+        _fetchOrderHistory(); // Refresh the order history
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to submit rating')),
@@ -109,18 +109,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _logout() async {
-    // Clear user session (e.g., remove token from shared preferences)
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.remove('userToken'); // Adjust the key as necessary
+    await prefs.remove('userToken');
+    await prefs.remove('email');
+    await prefs.remove('password');
+    await prefs.remove('userId');
+    await prefs.remove('remember_me');
 
-    // Show a confirmation message
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Logged out successfully')),
-    );
-
-    // Navigate to the login screen and remove all previous routes
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => SignInScreen()), // Replace with your login screen widget
+      MaterialPageRoute(builder: (context) => SignInScreen()),
       (Route<dynamic> route) => false,
     );
   }
@@ -253,7 +250,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 children: items.map((item) {
                                   return OrderHistoryCard(
                                     name: item['name'] ?? '',
-                                    imageUrl : item['image'] ?? '',
+                                    imageUrl: item['image'] ?? '',
                                     price: (item['price'] ?? 0).toDouble(),
                                     quantity: item['quantity'] ?? 0,
                                     orderDate: order['orderDate'] ?? '',
@@ -289,7 +286,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Row(
       children: [
         Icon(
-          icon, color: Colors.black,
+          icon,
+          color: Colors.black,
         ),
         const SizedBox(width: 15),
         Expanded(
