@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'dart:async';
 
 class MessageScreen extends StatefulWidget {
@@ -25,11 +24,8 @@ class _MessageScreenState extends State<MessageScreen> {
   final ScrollController _scrollController = ScrollController();
   String? restaurantName;
   String? restaurantImage;
-  late IO.Socket socket;
-  bool _isSending = false;
   String? _chatId;
   bool _isChatIdLoading = true;
-  bool _isConnected = false;
   Timer? _refreshTimer;
   bool _showScrollToBottom = false;
 
@@ -38,11 +34,10 @@ class _MessageScreenState extends State<MessageScreen> {
     super.initState();
     _scrollController.addListener(_scrollListener);
     _fetchRestaurantDetails();
-    _initializeSocket();
     _getOrCreateChatId().then((_) {
       if (_chatId != null) {
         _fetchLatestMessages();
-        _refreshTimer = Timer.periodic(const Duration(milliseconds: 1), (timer) {
+        _refreshTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
           if (mounted && _chatId != null) {
             _fetchLatestMessages();
           }
@@ -63,7 +58,6 @@ class _MessageScreenState extends State<MessageScreen> {
   @override
   void dispose() {
     _refreshTimer?.cancel();
-    socket.dispose();
     _controller.dispose();
     _scrollController.removeListener(_scrollListener);
     _scrollController.dispose();
@@ -80,54 +74,6 @@ class _MessageScreenState extends State<MessageScreen> {
         );
       });
     }
-  }
-
-  void _initializeSocket() {
-    socket = IO.io('${dotenv.env['SOCKET_BASE_URL']}', <String, dynamic>{
-      'transports': ['websocket'],
-      'autoConnect': true,
-      'reconnection': true,
-      'reconnectionAttempts': 5,
-      'reconnectionDelay': 1000,
-    });
-
-    socket.connect();
-
-    socket.onConnect((_) {
-      print('Socket Connected');
-      setState(() => _isConnected = true);
-      if (_chatId != null) {
-        socket.emit('joinChat', _chatId);
-        print('Joined chat room: $_chatId');
-      }
-    });
-
-    socket.onDisconnect((_) {
-      print('Socket Disconnected');
-      setState(() => _isConnected = false);
-    });
-
-    socket.on('messageReceived', (data) {
-      print('Received message: $data');
-      if (data != null && data['sender_id'] != widget.userId) {
-        setState(() {
-          _messages.add({
-            'sender_id': data['sender_id'],
-            'message': data['message'],
-            'timestamp':
-                data['timestamp'] ?? DateTime.now().millisecondsSinceEpoch,
-          });
-          _messages.sort((a, b) =>
-              (a['timestamp'] as num).compareTo(b['timestamp'] as num));
-        });
-        Future.delayed(const Duration(milliseconds: 100), () {
-          _scrollToBottom();
-        });
-      }
-    });
-
-    socket.onError((error) => print('Socket Error: $error'));
-    socket.onConnectError((error) => print('Connect Error: $error'));
   }
 
   Future<void> _fetchLatestMessages() async {
@@ -197,7 +143,6 @@ class _MessageScreenState extends State<MessageScreen> {
         _chatId = existingChat['_id'];
         _isChatIdLoading = false;
       });
-      socket.emit('joinChat', _chatId);
       await _fetchLatestMessages();
     } else {
       await _createChatId();
@@ -221,7 +166,7 @@ class _MessageScreenState extends State<MessageScreen> {
           _chatId = data['_id'];
           _isChatIdLoading = false;
         });
-        socket.emit('joinChat', _chatId);
+        await _fetchLatestMessages();
       }
     } catch (e) {
       print('Error creating chat ID: $e');
@@ -252,24 +197,15 @@ class _MessageScreenState extends State<MessageScreen> {
   }
 
   Future<void> _sendMessage() async {
-    if (_controller.text.isNotEmpty && !_isSending && _chatId != null) {
+    if (_controller.text.isNotEmpty && _chatId != null) {
       final message = _controller.text;
       _addMessageToLocal(message);
       _controller.clear();
 
       try {
-        setState(() => _isSending = true);
         await _saveMessageToDatabase(message);
-        socket.emit('sendMessage', {
-          'chatId': _chatId,
-          'sender_id': widget.userId,
-          'message': message,
-          'timestamp': DateTime.now().millisecondsSinceEpoch,
-        });
       } catch (e) {
         print('Error sending message: $e');
-      } finally {
-        setState(() => _isSending = false);
       }
     }
   }
@@ -332,16 +268,6 @@ class _MessageScreenState extends State<MessageScreen> {
             ),
           ],
         ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Icon(
-              _isConnected ? Icons.circle : Icons.circle_outlined,
-              color: _isConnected ? Colors.green : Colors.red,
-              size: 12,
-            ),
-          ),
-        ],
       ),
       body: Column(
         children: [
@@ -428,7 +354,7 @@ class _MessageScreenState extends State<MessageScreen> {
               ),
             ),
           ),
-          if (isUserMessage) const SizedBox(width: 8),
+          if (isUserMessage) const SizedBox(width: 8), // Fixed here
         ],
       ),
     );
@@ -483,9 +409,8 @@ class _MessageScreenState extends State<MessageScreen> {
               ),
               child: IconButton(
                 icon: const Icon(Icons.send, color: Colors.white),
-                onPressed: _isChatIdLoading || _chatId == null || _isSending
-                    ? null
-                    : _sendMessage,
+                onPressed:
+                    _isChatIdLoading || _chatId == null ? null : _sendMessage,
               ),
             ),
           ],
