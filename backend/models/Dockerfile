@@ -4,4 +4,4 @@ COPY package*.json ./
 COPY . .
 RUN npm install
 EXPOSE 5001
-CMD ["node", "server.js"]
+CMD ["node", "backend/server.js"]
