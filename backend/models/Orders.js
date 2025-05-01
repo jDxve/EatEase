@@ -47,7 +47,7 @@ const orderSchema = new mongoose.Schema({
   },
   pickup_time: {
     type: String,
-    required: true 
+    required: true,
   },
 });
 

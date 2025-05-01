@@ -6,7 +6,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'details_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  final String userId; // Add a userId parameter
+  final String userId;
 
   const HomeScreen({super.key, required this.userId}); // Update the constructor
 
