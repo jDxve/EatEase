@@ -89,17 +89,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           "userId": widget.userId,
         }),
       );
-
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Rating submitted successfully')),
-        );
-        _fetchOrderHistory(); // Refresh the order history
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to submit rating')),
-        );
-      }
     } catch (error) {
       print("Error submitting rating: $error");
       ScaffoldMessenger.of(context).showSnackBar(
