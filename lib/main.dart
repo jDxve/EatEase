@@ -2,12 +2,14 @@ import 'package:eatease/screens/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:eatease/services/cart_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-
   await dotenv.load(fileName: "backend/.env");
+
+  await CartService.deleteCartItems();
 
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -25,7 +27,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Flutter Demo',
+      title: 'EatEase',
       theme: ThemeData(
         // This is the theme of your application.
         //

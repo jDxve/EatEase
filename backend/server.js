@@ -257,7 +257,6 @@ app.post("/api/orders", async (req, res) => {
     res.status(500).json({ error: "Server error", details: error.message });
   }
 });
-
 // Fetch cart
 app.get("/api/orders/:customer_id", async (req, res) => {
   try {
@@ -315,7 +314,6 @@ app.delete("/api/orders/:customer_id/items", async (req, res) => {
 
     const order = await Order.findOne({
       customer_id: new mongoose.Types.ObjectId(customer_id),
-      order_stage: "add to cart",
       order_status: 1,
     });
 
@@ -333,6 +331,24 @@ app.delete("/api/orders/:customer_id/items", async (req, res) => {
     res.status(500).json({ error: "Server error", details: error.message });
   }
 });
+
+app.get("/api/check_active_cart/:customerId", async (req, res) => {
+  try {
+    const customer_id = req.params.customerId;
+
+    const order = await Order.findOne({
+      customer_id: new mongoose.Types.ObjectId(customer_id),
+      order_status: 1,
+    });
+
+    res.json({
+      hasActiveCart: !!order, // Convert to boolean
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.delete("/api/orders/:customer_id/items/:item_id", async (req, res) => {
   try {
     const { customer_id, item_id } = req.params;
@@ -348,7 +364,7 @@ app.delete("/api/orders/:customer_id/items/:item_id", async (req, res) => {
     // Find the order for the customer
     const order = await Order.findOne({
       customer_id: new mongoose.Types.ObjectId(customer_id),
-      order_stage: "add to cart",
+      order_stage: { $in: ["add to cart", "order checkout"] },
       order_status: 1,
     });
 
@@ -378,6 +394,89 @@ app.delete("/api/orders/:customer_id/items/:item_id", async (req, res) => {
     res.status(500).json({ error: "Server error", details: error.message });
   }
 });
+
+// Add this route to your express app code (in the server file)
+
+// Cancel order endpoint
+app.put("/api/cancel_order/:orderId", async (req, res) => {
+  const { orderId } = req.params;
+  const { customerId } = req.body; // Assuming customerId is sent in the request body
+
+  console.log("Cancelling Order ID:", orderId);
+  console.log("Customer ID:", customerId);
+
+  // Validate ObjectId
+  if (!mongoose.Types.ObjectId.isValid(orderId)) {
+    return res.status(400).json({ message: "Invalid order ID" });
+  }
+  if (!mongoose.Types.ObjectId.isValid(customerId)) {
+    return res.status(400).json({ message: "Invalid customer ID" });
+  }
+
+  try {
+    // First, find the order to make sure it exists and belongs to the customer
+    const order = await Order.findOne({
+      _id: orderId,
+      customer_id: new mongoose.Types.ObjectId(customerId),
+    });
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    // Check if the order is in a status that can be cancelled (status 1)
+    if (order.order_status !== 1) {
+      return res.status(400).json({
+        message:
+          "Cannot cancel this order. Only pending orders can be cancelled.",
+      });
+    }
+
+    // Update order status to cancelled (status 0)
+    const updatedOrder = await Order.findOneAndUpdate(
+      {
+        _id: orderId,
+        customer_id: new mongoose.Types.ObjectId(customerId),
+      },
+      {
+        order_status: 0, // Set status to 0 for cancelled
+        order_stage: "order cancelled",
+      },
+      { new: true } // Return the updated document
+    );
+
+    res.status(200).json({
+      message: "Order cancelled successfully",
+      order: updatedOrder,
+    });
+  } catch (error) {
+    console.error("Error cancelling order:", error);
+    res.status(500).json({ error: "Server error", details: error.message });
+  }
+});
+
+app.get("/api/pending_orders/:customerId", async (req, res) => {
+  const { customerId } = req.params;
+
+  // Validate ObjectId
+  if (!mongoose.Types.ObjectId.isValid(customerId)) {
+    return res.status(400).json({ message: "Invalid customer ID" });
+  }
+
+  try {
+    const pendingOrders = await Order.find({
+      customer_id: new mongoose.Types.ObjectId(customerId),
+      order_status: { $in: [1, 2, 3] }, // Status values for pending orders
+      order_stage: "place order", // Add the order_stage check
+    });
+
+    res.status(200).json(pendingOrders);
+  } catch (error) {
+    console.error("Error fetching pending orders:", error);
+    res.status(500).json({ error: "Server error", details: error.message });
+  }
+});
+
 // Update item quantity in an existing order
 app.put("/api/orders/:customerId/items/:itemId", async (req, res) => {
   const { customerId, itemId } = req.params;
@@ -631,6 +730,74 @@ app.post("/api/payments", async (req, res) => {
     res.status(500).json({
       success: false,
       error: err.message || "Failed to create payment record",
+    });
+  }
+});
+
+// Add a route to get payment details by order ID
+app.get("/api/payments/order/:orderId", async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid order ID format",
+      });
+    }
+
+    const payment = await Payment.findOne({ order_id: new ObjectId(orderId) });
+
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        error: "Payment not found for this order",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: payment,
+    });
+  } catch (err) {
+    console.error("Error fetching payment record:", err);
+    res.status(500).json({
+      success: false,
+      error: err.message || "Failed to fetch payment record",
+    });
+  }
+});
+
+// Add a route to get payment details by order ID
+app.get("/api/payments/order/:orderId", async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid order ID format",
+      });
+    }
+
+    const payment = await Payment.findOne({ order_id: new ObjectId(orderId) });
+
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        error: "Payment not found for this order",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: payment,
+    });
+  } catch (err) {
+    console.error("Error fetching payment record:", err);
+    res.status(500).json({
+      success: false,
+      error: err.message || "Failed to fetch payment record",
     });
   }
 });

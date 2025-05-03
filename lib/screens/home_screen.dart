@@ -4,11 +4,13 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'details_screen.dart';
+import 'package:eatease/screens/orders_screen.dart';
+import 'package:eatease/components/bottom_nav.dart';
 
 class HomeScreen extends StatefulWidget {
   final String userId;
 
-  const HomeScreen({super.key, required this.userId}); // Update the constructor
+  const HomeScreen({super.key, required this.userId});
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
@@ -18,17 +20,27 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Map<String, dynamic>> restaurants = [];
   List<Map<String, dynamic>> filteredRestaurants = [];
   bool isLoading = true;
+  bool hasPendingOrder = false;
+  String? pendingOrderRestaurantId;
+  Timer? _timer;
   final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     fetchRestaurants();
+    checkPendingOrders();
     _searchController.addListener(_filterRestaurants);
+
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      fetchRestaurants();
+      checkPendingOrders();
+    });
   }
 
   @override
   void dispose() {
+    _timer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -60,7 +72,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String _buildLocationString(Map<String, dynamic>? address) {
     if (address == null) return 'Location not available';
-
     return [address['street'], address['city'], address['province']]
         .where((s) => s?.isNotEmpty == true)
         .join(', ');
@@ -75,6 +86,55 @@ class _HomeScreenState extends State<HomeScreen> {
     return '$displayHour:$minute $suffix';
   }
 
+  Future<void> checkPendingOrders() async {
+    final String apiUrl =
+        "${dotenv.env['API_BASE_URL']}/pending_orders/${widget.userId}";
+
+    try {
+      final response = await http.get(Uri.parse(apiUrl));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> pendingOrders = json.decode(response.body);
+        setState(() {
+          hasPendingOrder = pendingOrders.isNotEmpty;
+          pendingOrderRestaurantId = pendingOrders.isNotEmpty
+              ? pendingOrders.first['restaurant_id']
+              : null;
+        });
+
+        // Only show SnackBar if this is the first check (when mounting)
+        if (pendingOrders.isNotEmpty && _timer == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                'You have pending orders. Please pick them up before placing a new order.',
+                style: TextStyle(color: Colors.white),
+              ),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 1),
+              action: SnackBarAction(
+                label: 'VIEW',
+                textColor: Colors.white,
+                onPressed: () {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                      builder: (context) => BottomNav(
+                        userId: widget.userId,
+                        initialIndex: 2,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error checking pending orders: $e');
+    }
+  }
+
   Future<void> fetchRestaurants() async {
     final String apiUrl = "${dotenv.env['API_BASE_URL']}/restaurants";
 
@@ -83,24 +143,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (response.statusCode == 200) {
         List<dynamic> data = json.decode(response.body);
-
         final now = DateTime.now();
         final currentTime = TimeOfDay.fromDateTime(now);
 
         List<Map<String, dynamic>> parsedRestaurants = data.map((item) {
           try {
             String id = item['_id'];
-
             final openTimeStr = item['operating_hours']?['open'] ?? '00:00';
             final closeTimeStr = item['operating_hours']?['close'] ?? '00:00';
-
             final openTime = _parseTimeString(openTimeStr);
             final closeTime = _parseTimeString(closeTimeStr);
-
             bool isOpen = _isRestaurantOpen(currentTime, openTime, closeTime);
 
             return {
-              'id': id, // Include the ID in the returned data
+              'id': id,
               'image': item['restaurant_photo'] ?? '',
               'name': item['name'] ?? 'Unknown',
               'location': _buildLocationString(item['address']),
@@ -110,7 +166,6 @@ class _HomeScreenState extends State<HomeScreen> {
               'businessHours':
                   '${_formatTime(openTimeStr)} - ${_formatTime(closeTimeStr)}',
               'dbStatus': item['status'].toString(),
-              'showClosedNotification': false, // Flag for notification
             };
           } catch (e) {
             print('Error parsing restaurant: $e');
@@ -118,17 +173,9 @@ class _HomeScreenState extends State<HomeScreen> {
           }
         }).toList();
 
-        // Debugging: Print the parsed restaurants
-        print('Parsed Restaurants: $parsedRestaurants');
-
-        // Filter restaurants with status '2'
         parsedRestaurants = parsedRestaurants.where((restaurant) {
-          return restaurant['dbStatus'] ==
-              '2'; // Ensure this is a string comparison
+          return restaurant['dbStatus'] == '2';
         }).toList();
-
-        // Debugging: Print the filtered restaurants
-        print('Filtered Restaurants: $parsedRestaurants');
 
         setState(() {
           restaurants = parsedRestaurants;
@@ -136,13 +183,12 @@ class _HomeScreenState extends State<HomeScreen> {
           isLoading = false;
         });
       } else {
-        print('Error: ${response.statusCode} - ${response.body}');
         throw Exception('Failed to load restaurants');
       }
     } catch (e) {
-      print('Exception: $e');
+      print('Error fetching restaurants: $e');
       setState(() {
-        isLoading = false; // Set loading to false on error
+        isLoading = false;
       });
     }
   }
@@ -160,28 +206,66 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       isLoading = true;
     });
-    await fetchRestaurants();
+    await Future.wait([
+      fetchRestaurants(),
+      checkPendingOrders(),
+    ]);
   }
 
   void _navigateToDetails(
       BuildContext context, Map<String, dynamic> restaurant) {
-    String restaurantId = restaurant['id'].toString();
-
-    if (restaurant['status'] == 'Unavailable') {
-      setState(() {
-        restaurant['showClosedNotification'] =
-            true; // Show notification if closed
-      });
-    } else {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => DetailsScreen(
-            restaurantId: restaurantId,
-            userId: widget.userId,
+    if (hasPendingOrder) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'You have pending orders. Please pick them up before placing a new order.',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 1),
+          action: SnackBarAction(
+            label: 'VIEW',
+            textColor: Colors.white,
+            onPressed: () {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (context) => BottomNav(
+                    userId: widget.userId,
+                    initialIndex: 2,
+                  ),
+                ),
+              );
+            },
           ),
         ),
       );
+      return;
     }
+
+    if (restaurant['status'] == 'Unavailable') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'This restaurant is currently closed',
+            style: TextStyle(color: Colors.white),
+            textAlign: TextAlign.center,
+          ),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => DetailsScreen(
+          restaurantId: restaurant['id'],
+          userId: widget.userId,
+        ),
+      ),
+    );
   }
 
   @override
@@ -235,7 +319,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 15, 16, 10),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.only(
+                  borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(20),
                     topRight: Radius.circular(20),
                   ),
@@ -248,12 +332,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 ),
-                child: const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Explore Restaurants',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
+                child: const Text(
+                  'Explore Restaurants',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
               ),
               Expanded(
@@ -266,30 +347,17 @@ class _HomeScreenState extends State<HomeScreen> {
                         : filteredRestaurants.isEmpty
                             ? const Center(
                                 child: Text(
-                                  'No available restaurants based on your search.',
+                                  'No restaurants found',
                                   style: TextStyle(
                                       fontSize: 16, color: Colors.grey),
                                 ),
                               )
-                            : ListView.separated(
-                                padding: EdgeInsets.zero,
+                            : ListView.builder(
+                                padding: const EdgeInsets.all(16),
                                 itemCount: filteredRestaurants.length,
-                                separatorBuilder: (context, index) =>
-                                    const SizedBox(height: 12),
                                 itemBuilder: (context, index) {
                                   final restaurant = filteredRestaurants[index];
-                                  return _buildRestaurantCard(
-                                    image: restaurant['image'],
-                                    name: restaurant['name'],
-                                    location: restaurant['location'],
-                                    rating: restaurant['rating'],
-                                    ratingCount: restaurant['rating_count'],
-                                    status: restaurant['status'],
-                                    businessHours: restaurant['businessHours'],
-                                    restaurantData:
-                                        restaurant, // Pass the restaurant data
-                                    context: context,
-                                  );
+                                  return _buildRestaurantCard(restaurant);
                                 },
                               ),
                   ),
@@ -302,40 +370,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildRestaurantCard({
-    required String image,
-    required String name,
-    required String location,
-    required String rating,
-    required String ratingCount,
-    required String status,
-    String? businessHours,
-    required Map<String, dynamic> restaurantData,
-    required BuildContext context,
-  }) {
+  Widget _buildRestaurantCard(Map<String, dynamic> restaurant) {
     return GestureDetector(
-      onTap: () {
-        if (status == 'Unavailable') {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Center(
-                child: const Text(
-                  'This restaurant is currently closed',
-                  style: TextStyle(color: Colors.white),
-                  textAlign: TextAlign.center, // Center the text
-                ),
-              ),
-              backgroundColor: Colors.red,
-              duration: const Duration(seconds: 2),
-              behavior: SnackBarBehavior.floating, // Floating behavior
-            ),
-          );
-        } else {
-          _navigateToDetails(context, restaurantData);
-        }
-      },
+      onTap: () => _navigateToDetails(context, restaurant),
       child: Container(
-        margin: const EdgeInsets.only(left: 16, right: 16),
+        margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
           color: Colors.white,
@@ -358,13 +397,20 @@ class _HomeScreenState extends State<HomeScreen> {
                     topRight: Radius.circular(10),
                   ),
                   child: Image.network(
-                    image,
-                    fit: BoxFit.cover,
+                    restaurant['image'],
                     height: 145,
                     width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        height: 145,
+                        color: Colors.grey.shade300,
+                        child: const Icon(Icons.image_not_supported, size: 40),
+                      );
+                    },
                   ),
                 ),
-                if (status == 'Unavailable')
+                if (restaurant['status'] == 'Unavailable')
                   Positioned.fill(
                     child: Container(
                       decoration: BoxDecoration(
@@ -386,15 +432,38 @@ class _HomeScreenState extends State<HomeScreen> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            if (businessHours != null)
-                              Text(
-                                'Business Hours: $businessHours',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                ),
+                            Text(
+                              'Business Hours: ${restaurant['businessHours']}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
                               ),
+                            ),
                           ],
+                        ),
+                      ),
+                    ),
+                  ),
+                if (hasPendingOrder &&
+                    restaurant['id'] == pendingOrderRestaurantId)
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.orange,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        'You have pending orders',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
@@ -411,21 +480,25 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                          name,
+                          restaurant['name'],
                           style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold),
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                       Row(
                         children: [
                           const Icon(Icons.star, color: Colors.amber, size: 18),
                           Text(
-                            rating,
-                            style: TextStyle(
-                                color: Colors.red, fontWeight: FontWeight.w600),
+                            restaurant['rating'],
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                           const SizedBox(width: 4),
-                          Text('($ratingCount)')
+                          Text('(${restaurant['rating_count']})'),
                         ],
                       ),
                     ],
@@ -438,10 +511,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          location,
-                          style: const TextStyle(
-                              fontSize: 14,
-                              color: Color.fromARGB(255, 19, 5, 5)),
+                          restaurant['location'],
+                          style: const TextStyle(fontSize: 14),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),

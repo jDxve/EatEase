@@ -6,6 +6,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:eatease/components/foodorder_card.dart';
 import 'package:eatease/components/orderstatus_indecator.dart';
 import 'package:eatease/screens/message_screen.dart';
+import 'package:eatease/components/bottom_nav.dart';
 
 class OrdersScreen extends StatefulWidget {
   final String userId;
@@ -120,6 +121,141 @@ class _OrdersScreenState extends State<OrdersScreen> {
       print('Error updating order: $e');
     }
   }
+
+  Future<void> cancelOrder(String orderId) async {
+  if (orderId.isEmpty) {
+    print('Invalid order ID');
+    return;
+  }
+
+  try {
+    final String apiUrl = "${dotenv.env['API_BASE_URL']}/cancel_order/$orderId";
+    print('Cancelling order at: $apiUrl');
+
+    final requestBody = json.encode({
+      'customerId': widget.userId,
+    });
+
+    final response = await http.put(
+      Uri.parse(apiUrl),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: requestBody,
+    );
+
+    print('Response status: ${response.statusCode}');
+    print('Response body: ${response.body}');
+
+    if (response.statusCode == 200) {
+      print('Order cancelled successfully');
+      
+      // Navigate to home screen (assuming index 0 is home)
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => BottomNav(
+            userId: widget.userId,
+            initialIndex: 0,
+          ),
+        ),
+      );
+
+      // Show the notification at the top after navigation
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              content: Container(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.red, width: 2),
+                      ),
+                      child: const Icon(
+                        Icons.close,
+                        color: Colors.red,
+                        size: 30,
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+                    const Text(
+                      'Order Cancelled',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Your order has been cancelled successfully',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        child: const Text(
+                          'OK',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+            );
+          },
+        );
+      });
+
+    } else {
+      print('Failed to cancel order: ${response.statusCode}');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to cancel order'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  } catch (e) {
+    print('Error cancelling order: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error: $e'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+}
 
   int getOrderStatusNumber(int orderStatus) {
     return orderStatus;
@@ -263,29 +399,87 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                     SizedBox(
                                       width: double.infinity,
                                       height: 50,
-                                      child: ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: orderStatus == 3
-                                              ? Colors.red
-                                              : Colors.grey,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(15),
-                                          ),
-                                        ),
-                                        onPressed: orderStatus == 3
-                                            ? () {
-                                                updateOrderStatus(order['id']);
-                                              }
-                                            : null,
-                                        child: const Text(
-                                          'Mark as Picked Up',
-                                          style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w600),
-                                        ),
-                                      ),
+                                      child: orderStatus == 1
+                                          ? ElevatedButton(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.red,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(15),
+                                                ),
+                                              ),
+                                              onPressed: () {
+                                                // Show confirmation dialog before cancelling
+                                                showDialog(
+                                                  context: context,
+                                                  builder:
+                                                      (BuildContext context) {
+                                                    return AlertDialog(
+                                                      title: const Text(
+                                                          'Cancel Order'),
+                                                      content: const Text(
+                                                          'Are you sure you want to cancel this order?'),
+                                                      actions: [
+                                                        TextButton(
+                                                          child:
+                                                              const Text('No'),
+                                                          onPressed: () {
+                                                            Navigator.of(
+                                                                    context)
+                                                                .pop();
+                                                          },
+                                                        ),
+                                                        TextButton(
+                                                          child:
+                                                              const Text('Yes'),
+                                                          onPressed: () {
+                                                            Navigator.of(
+                                                                    context)
+                                                                .pop();
+                                                            cancelOrder(
+                                                                order['id']);
+                                                          },
+                                                        ),
+                                                      ],
+                                                    );
+                                                  },
+                                                );
+                                              },
+                                              child: const Text(
+                                                'Cancel Order',
+                                                style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 16,
+                                                    fontWeight:
+                                                        FontWeight.w600),
+                                              ),
+                                            )
+                                          : ElevatedButton(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor:
+                                                    orderStatus == 3
+                                                        ? Colors.red
+                                                        : Colors.grey,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(15),
+                                                ),
+                                              ),
+                                              onPressed: orderStatus == 3
+                                                  ? () {
+                                                      updateOrderStatus(
+                                                          order['id']);
+                                                    }
+                                                  : null,
+                                              child: const Text(
+                                                'Mark as Picked Up',
+                                                style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 16,
+                                                    fontWeight:
+                                                        FontWeight.w600),
+                                              ),
+                                            ),
                                     ),
                                   ],
                                 ),

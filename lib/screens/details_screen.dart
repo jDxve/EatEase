@@ -8,10 +8,13 @@ import 'package:eatease/screens/mycart_screen.dart';
 
 class DetailsScreen extends StatefulWidget {
   final String restaurantId;
-  final String userId; // Add userId parameter
+  final String userId;
 
-  // Constructor to accept the restaurant ID and user ID
-  DetailsScreen({required this.restaurantId, required this.userId});
+  const DetailsScreen({
+    Key? key,
+    required this.restaurantId,
+    required this.userId,
+  }) : super(key: key);
 
   @override
   _DetailsScreenState createState() => _DetailsScreenState();
@@ -22,13 +25,31 @@ class _DetailsScreenState extends State<DetailsScreen> {
   bool isLoading = true;
   String errorMessage = '';
   int? selectedCategory;
-  String successMessage = ''; // State variable for success message
+  String successMessage = '';
+  bool hasActiveCart = false;
 
   @override
   void initState() {
     super.initState();
-    deleteCartItems();
+    checkActiveCart();
     fetchRestaurantDetails();
+  }
+
+  Future<void> checkActiveCart() async {
+    final String apiUrl =
+        "${dotenv.env['API_BASE_URL']}/check_active_cart/${widget.userId}";
+
+    try {
+      final response = await http.get(Uri.parse(apiUrl));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          hasActiveCart = data['hasActiveCart'] ?? false;
+        });
+      }
+    } catch (e) {
+      print('Error checking active cart: $e');
+    }
   }
 
   Future<void> fetchRestaurantDetails() async {
@@ -43,7 +64,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
           restaurantDetails = json.decode(response.body);
           isLoading = false;
         });
-        print('User  ID: ${widget.userId}'); // Print the user ID
+        print('User ID: ${widget.userId}');
       } else {
         setState(() {
           errorMessage = 'Error: ${response.statusCode} - ${response.body}';
@@ -65,53 +86,109 @@ class _DetailsScreenState extends State<DetailsScreen> {
   }
 
   Future<bool> _onWillPop() async {
-    // Show a confirmation dialog when the user tries to leave the screen
+    if (!hasActiveCart) {
+      return true;
+    }
+
     final shouldLeave = await showDialog<bool>(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.white, // Set background color
-          title: Row(
-            children: [
-              const Icon(Icons.warning,
-                  color: Colors.red, size: 30), // Warning icon
-              const SizedBox(width: 10),
-              const Text('Warning'),
-            ],
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
           ),
-          content: const Padding(
-            padding: EdgeInsets.all(8.0),
-            child: Text(
-              'If you leave this page, the items in your cart will be deleted. Do you want to proceed?',
-              style: TextStyle(fontSize: 16),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.warning_rounded,
+                    color: Colors.red,
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Leave Page?',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'If you leave this page, the items in your cart will be deleted.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey[200],
+                          foregroundColor: Colors.black,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                        ),
+                        onPressed: () => Navigator.of(context).pop(false),
+                        child: const Text(
+                          'Stay',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                        ),
+                        onPressed: () {
+                          deleteCartItems();
+                          Navigator.of(context).pop(true);
+                        },
+                        child: const Text(
+                          'Leave',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false), // Do not leave
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                deleteCartItems(); // Call the deleteCartItems function
-                Navigator.of(context).pop(true); // Proceed to leave
-              },
-              child: const Text('OK'),
-            ),
-          ],
         );
       },
     );
-    return shouldLeave ?? false; // Return false if the dialog is dismissed
+    return shouldLeave ?? false;
   }
 
   Future<void> deleteCartItems() async {
     final String apiUrl =
-        "${dotenv.env['API_BASE_URL']}/orders/${widget.userId}/items"; // Adjust the endpoint as necessary
+        "${dotenv.env['API_BASE_URL']}/orders/${widget.userId}/items";
 
     try {
       final response = await http.delete(Uri.parse(apiUrl));
-
       if (response.statusCode == 200) {
         print('Cart items deleted successfully');
       } else {
@@ -122,24 +199,36 @@ class _DetailsScreenState extends State<DetailsScreen> {
     }
   }
 
+  void _handleBackPress() async {
+    if (!hasActiveCart) {
+      Navigator.pop(context);
+      return;
+    }
+
+    final shouldLeave = await _onWillPop();
+    if (shouldLeave) {
+      Navigator.pop(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
-      onWillPop: _onWillPop, // Set the onWillPop callback
+      onWillPop: _onWillPop,
       child: Scaffold(
         body: Container(
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             image: DecorationImage(
               image: AssetImage('assets/images/bg.png'),
               fit: BoxFit.cover,
             ),
           ),
           child: isLoading
-              ? Center(child: CircularProgressIndicator())
+              ? const Center(child: CircularProgressIndicator())
               : errorMessage.isNotEmpty
                   ? Center(child: Text(errorMessage))
                   : restaurantDetails == null
-                      ? Center(child: Text('Restaurant not found'))
+                      ? const Center(child: Text('Restaurant not found'))
                       : Column(
                           children: [
                             const SizedBox(height: 70),
@@ -150,15 +239,10 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                   child: IconButton(
                                     icon: const Icon(Icons.arrow_back,
                                         color: Colors.white),
-                                    onPressed: () async {
-                                      final shouldLeave = await _onWillPop();
-                                      if (shouldLeave) {
-                                        Navigator.pop(context);
-                                      }
-                                    },
+                                    onPressed: _handleBackPress,
                                   ),
                                 ),
-                                Expanded(
+                                const Expanded(
                                   child: Center(
                                     child: Text(
                                       'Details',
@@ -174,17 +258,18 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                   padding: const EdgeInsets.only(right: 30),
                                   child: GestureDetector(
                                     onTap: () {
-                                      final userId = widget.userId;
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                            builder: (context) => MyCartScreen(
-                                                userId: userId,
-                                                restaurantId:
-                                                    widget.restaurantId)),
+                                          builder: (context) => MyCartScreen(
+                                            userId: widget.userId,
+                                            restaurantId: widget.restaurantId,
+                                          ),
+                                        ),
                                       );
                                     },
-                                    child: Icon(Icons.shopping_cart_outlined,
+                                    child: const Icon(
+                                        Icons.shopping_cart_outlined,
                                         color: Colors.white),
                                   ),
                                 ),
@@ -247,7 +332,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                           Text(
                                             restaurantDetails!['name'] ??
                                                 'Unknown',
-                                            style: TextStyle(
+                                            style: const TextStyle(
                                               fontSize: 17.5,
                                               fontWeight: FontWeight.bold,
                                             ),
@@ -255,13 +340,13 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                           const SizedBox(height: 5),
                                           Row(
                                             children: [
-                                              Icon(
+                                              const Icon(
                                                 Icons.location_on,
                                                 color: Color.fromARGB(
                                                     255, 171, 19, 8),
                                                 size: 25,
                                               ),
-                                              SizedBox(width: 5),
+                                              const SizedBox(width: 5),
                                               Expanded(
                                                 child: Text(
                                                   restaurantDetails![
@@ -269,7 +354,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                                           null
                                                       ? '${restaurantDetails!['address']['street']}, ${restaurantDetails!['address']['city']}, ${restaurantDetails!['address']['province']}'
                                                       : 'Location not available',
-                                                  style: TextStyle(
+                                                  style: const TextStyle(
                                                     fontSize: 14,
                                                     color: Color.fromARGB(
                                                         255, 19, 5, 5),
@@ -290,7 +375,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                                 restaurantDetails!['rating']
                                                         ?.toString() ??
                                                     'N/A',
-                                                style: TextStyle(
+                                                style: const TextStyle(
                                                     color: Colors.red,
                                                     fontWeight:
                                                         FontWeight.w600),
@@ -300,7 +385,6 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                                   '(${restaurantDetails!['rating_count']?.toString() ?? '0'})')
                                             ],
                                           ),
-                                          // Display the success message above the FoodList
                                           if (successMessage.isNotEmpty)
                                             Padding(
                                               padding:
@@ -308,7 +392,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                                       vertical: 8.0),
                                               child: Text(
                                                 successMessage,
-                                                style: TextStyle(
+                                                style: const TextStyle(
                                                   color: Colors.pink,
                                                   fontWeight: FontWeight.bold,
                                                 ),
@@ -319,7 +403,6 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                               onCategorySelected:
                                                   onCategorySelected),
                                           const SizedBox(height: 10),
-                                          // Pass the selected category ID
                                         ],
                                       ),
                                     ),
