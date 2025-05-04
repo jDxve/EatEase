@@ -28,7 +28,18 @@
       
   Profile Management: Update user details and manage addresses
 
+## Feature Screenshots
 
+<p float="left">
+  <img src="assets/images/login.png" width="200"/>
+  <img src="assets/images/homesimulator.png" width="200"/>
+  <img src="assets/images/menu.png" width="200"/>
+  <img src="assets/images/menudetails.png" width="200"/>
+  <img src="assets/images/cart.png" width="200"/>
+  <img src="assets/images/checkout.png" width="200"/>
+  <img src="assets/images/myorders.png" width="200"/>
+  <img src="assets/images/myprofile.png" width="200"/>
+</p>
 
 # Tech Stack
 
