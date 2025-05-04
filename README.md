@@ -1,5 +1,3 @@
-# EatEase
-
 <img src="https://raw.githubusercontent.com/jDxve/EatEase/main/assets/images/logo.png" alt="EatEase Logo" width="400" />
 
 
@@ -32,6 +30,7 @@
 
 <p float="left">
   <img src="assets/images/login.png" width="200"/>
+  <img src="assets/images/signup.png" width="200"/>
   <img src="assets/images/homesimulator.png" width="200"/>
   <img src="assets/images/menu.png" width="200"/>
   <img src="assets/images/menudetails.png" width="200"/>
