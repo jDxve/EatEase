@@ -33,28 +33,28 @@
 # Tech Stack
 
   Mobile Application
-
-  Flutter: Cross-platform UI framework for building native applications
-    
-  Dart: Programming language for Flutter development
+  
+    Flutter: Cross-platform UI framework for building native applications
+      
+    Dart: Programming language for Flutter development
 
   Backend
 
-  Node.js: JavaScript runtime for server-side development
-    
-  Express: Web framework for Node.js
-    
-  MongoDB: NoSQL database for data storage
-    
-  Mongoose: MongoDB object modeling for Node.js
-    
-  Socket.io: Real-time bidirectional event-based communication
-    
-  JWT: JSON Web Tokens for authentication
-    
-  Bcrypt: Password hashing
-    
-  Nodemailer: Email service for password reset
+    Node.js: JavaScript runtime for server-side development
+      
+    Express: Web framework for Node.js
+      
+    MongoDB: NoSQL database for data storage
+      
+    Mongoose: MongoDB object modeling for Node.js
+      
+    Socket.io: Real-time bidirectional event-based communication
+      
+    JWT: JSON Web Tokens for authentication
+      
+    Bcrypt: Password hashing
+      
+    Nodemailer: Email service for password reset
 
 
 # Installation
