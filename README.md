@@ -5,36 +5,38 @@
 
 # Overview
 
-EatEase is a modern food ordering mobile application built with Flutter that provides users with a seamless experience for browsing restaurants, ordering food, and making secure online payments. The app features real-time order tracking, in-app messaging, and multiple payment options through PayMongo integration.
+  EatEase is a modern food ordering mobile application built with Flutter that provides users with a seamless experience for browsing restaurants, ordering food, and making secure     online payments. The app features real-time order tracking, in-app messaging, and multiple payment options through PayMongo integration.
+
 
 # Features
 
-  User Authentication: 
-    Secure login, registration, and password reset system
-    
-  Restaurant Browsing: 
-    Browse restaurants by category, location, or rating
-    
-  Menu Management: 
-    View restaurant menus with detailed food descriptions
-    
-  Cart System: 
-    Add items to cart and modify quantities
-    
-  Order Tracking: 
-    Real-time order status updates
-    
-  Online Payments: 
-    Secure payment integration with PayMongo (GCash and GrabPay)
-    
-  Order History:
-    View past orders and reorder favorite items
-    
-  In-app Chat: 
-    Direct messaging between customers and restaurants
-    
-  Profile Management: 
-    Update user details and manage addresses
+    User Authentication: 
+      Secure login, registration, and password reset system
+      
+    Restaurant Browsing: 
+      Browse restaurants by category, location, or rating
+      
+    Menu Management: 
+      View restaurant menus with detailed food descriptions
+      
+    Cart System: 
+      Add items to cart and modify quantities
+      
+    Order Tracking: 
+      Real-time order status updates
+      
+    Online Payments: 
+      Secure payment integration with PayMongo (GCash and GrabPay)
+      
+    Order History:
+      View past orders and reorder favorite items
+      
+    In-app Chat: 
+      Direct messaging between customers and restaurants
+      
+    Profile Management: 
+      Update user details and manage addresses
+
 
 
 # Tech Stack
@@ -58,40 +60,42 @@ EatEase is a modern food ordering mobile application built with Flutter that pro
 
 # Installation
 
-  Prerequisites
-      Flutter SDK (2.10.0 or higher)
-      Dart SDK (2.16.0 or higher)
-      Node.js (14.x or higher)
-      MongoDB (4.4 or higher)
-      Android Studio or VS Code with Flutter extensions
+    Prerequisites
+        Flutter SDK (2.10.0 or higher)
+        Dart SDK (2.16.0 or higher)
+        Node.js (14.x or higher)
+        MongoDB (4.4 or higher)
+        Android Studio or VS Code with Flutter extensions
+
 
 # Mobile App Setup
   
   1. Clone the repository:
      
-       git clone https://github.com/jDxve/EatEase.git
+         git clone https://github.com/jDxve/EatEase.git
      
   2. Navigate to the project directory:
 
-        cd eatease
+          cd eatease
      
   3. Install dependencies:
 
-        flutter pub get
+          flutter pub get
      
   4. Run the application:
 
-       flutter run
+         flutter run
+
 
 # Backend Setup:
 
   1. Navigate to the backend directory:
      
-       cd backend
+         cd backend
      
   2. Install dependencies:
 
-        npm install
+          npm install
      
   3. Set up environment variables:
 
@@ -110,7 +114,8 @@ EatEase is a modern food ordering mobile application built with Flutter that pro
      
   4. Start the server:
 
-       npm run dev or node server.js
+         npm run dev or node server.js
+
 
 
 # Developer Contact Information
