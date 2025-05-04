@@ -10,32 +10,23 @@
 
 # Features
 
-    User Authentication: 
-      Secure login, registration, and password reset system
+    User Authentication: Secure login, registration, and password reset system
       
-    Restaurant Browsing: 
-      Browse restaurants by category, location, or rating
+    Restaurant Browsing: Browse restaurants by category, location, or rating
       
-    Menu Management: 
-      View restaurant menus with detailed food descriptions
+    Menu Management: View restaurant menus with detailed food descriptions
       
-    Cart System: 
-      Add items to cart and modify quantities
+    Cart System: Add items to cart and modify quantities
       
-    Order Tracking: 
-      Real-time order status updates
+    Order Tracking: Real-time order status updates
       
-    Online Payments: 
-      Secure payment integration with PayMongo (GCash and GrabPay)
+    Online Payments: Secure payment integration with PayMongo (GCash and GrabPay)
       
-    Order History:
-      View past orders and reorder favorite items
+    Order History: View past orders and reorder favorite items
       
-    In-app Chat: 
-      Direct messaging between customers and restaurants
+    In-app Chat: Direct messaging between customers and restaurants
       
-    Profile Management: 
-      Update user details and manage addresses
+    Profile Management: Update user details and manage addresses
 
 
 
