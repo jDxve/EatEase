@@ -1,5 +1,6 @@
-<img src="https://raw.githubusercontent.com/jDxve/EatEase/main/assets/images/logo.png" alt="EatEase Logo" width="400" />
-
+<p align="center">
+  <img src="https://raw.githubusercontent.com/jDxve/EatEase/main/assets/images/logo.png" alt="EatEase Logo" width="400" />
+</p>
 
 # Overview
 
