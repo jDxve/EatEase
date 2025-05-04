@@ -10,23 +10,23 @@
 
 # Features
 
-    User Authentication: Secure login, registration, and password reset system
+  User Authentication: Secure login, registration, and password reset system
       
-    Restaurant Browsing: Browse restaurants by category, location, or rating
+  Restaurant Browsing: Browse restaurants by category, location, or rating
       
-    Menu Management: View restaurant menus with detailed food descriptions
+  Menu Management: View restaurant menus with detailed food descriptions
       
-    Cart System: Add items to cart and modify quantities
+  Cart System: Add items to cart and modify quantities
       
-    Order Tracking: Real-time order status updates
+  Order Tracking: Real-time order status updates
       
-    Online Payments: Secure payment integration with PayMongo (GCash and GrabPay)
+  Online Payments: Secure payment integration with PayMongo (GCash and GrabPay)
       
-    Order History: View past orders and reorder favorite items
+  Order History: View past orders and reorder favorite items
       
-    In-app Chat: Direct messaging between customers and restaurants
+  In-app Chat: Direct messaging between customers and restaurants
       
-    Profile Management: Update user details and manage addresses
+  Profile Management: Update user details and manage addresses
 
 
 
@@ -34,24 +34,33 @@
 
   Mobile Application
 
-    Flutter: Cross-platform UI framework for building native applications
-    Dart: Programming language for Flutter development
+  Flutter: Cross-platform UI framework for building native applications
+    
+  Dart: Programming language for Flutter development
 
   Backend
 
-    Node.js: JavaScript runtime for server-side development
-    Express: Web framework for Node.js
-    MongoDB: NoSQL database for data storage
-    Mongoose: MongoDB object modeling for Node.js
-    Socket.io: Real-time bidirectional event-based communication
-    JWT: JSON Web Tokens for authentication
-    Bcrypt: Password hashing
-    Nodemailer: Email service for password reset
+  Node.js: JavaScript runtime for server-side development
+    
+  Express: Web framework for Node.js
+    
+  MongoDB: NoSQL database for data storage
+    
+  Mongoose: MongoDB object modeling for Node.js
+    
+  Socket.io: Real-time bidirectional event-based communication
+    
+  JWT: JSON Web Tokens for authentication
+    
+  Bcrypt: Password hashing
+    
+  Nodemailer: Email service for password reset
 
 
 # Installation
 
-    Prerequisites
+  Prerequisites: 
+        
         Flutter SDK (2.10.0 or higher)
         Dart SDK (2.16.0 or higher)
         Node.js (14.x or higher)
