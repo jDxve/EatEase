@@ -27,7 +27,7 @@
       
   In-app Chat: Direct messaging between customers and restaurants
       
-  Profile Management: Update user details and manage addresses
+  Profile Management: Update user details
 
 ## Feature Screenshots
 
