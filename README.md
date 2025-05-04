@@ -2,6 +2,8 @@
   <img src="https://raw.githubusercontent.com/jDxve/EatEase/main/assets/images/logo.png" alt="EatEase Logo" width="400" />
 </p>
 
+# EatEase : A seamless food ordering mobile application built with Flutter, Node.js, MongoDB, and PayMongo.
+
 # Overview
 
   EatEase is a modern food ordering mobile application built with Flutter that provides users with a seamless experience for browsing restaurants, ordering food, and making secure     online payments. The app features real-time order tracking, in-app messaging, and multiple payment options through PayMongo integration.
