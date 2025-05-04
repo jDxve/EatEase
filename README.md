@@ -9,33 +9,43 @@ EatEase is a modern food ordering mobile application built with Flutter that pro
 
 # Features
 
-  # User Authentication: 
+  User Authentication: 
     Secure login, registration, and password reset system
-  # Restaurant Browsing: 
+    
+  Restaurant Browsing: 
     Browse restaurants by category, location, or rating
-  # Menu Management: 
+    
+  Menu Management: 
     View restaurant menus with detailed food descriptions
-  # Cart System: 
+    
+  Cart System: 
     Add items to cart and modify quantities
-  # Order Tracking: 
+    
+  Order Tracking: 
     Real-time order status updates
-  # Online Payments: 
+    
+  Online Payments: 
     Secure payment integration with PayMongo (GCash and GrabPay)
-  #Order History:
+    
+  Order History:
     View past orders and reorder favorite items
-  # In-app Chat: 
+    
+  In-app Chat: 
     Direct messaging between customers and restaurants
-  # Profile Management: 
+    
+  Profile Management: 
     Update user details and manage addresses
 
 
 # Tech Stack
 
-# Mobile Application
+  Mobile Application
+
     Flutter: Cross-platform UI framework for building native applications
     Dart: Programming language for Flutter development
 
-# Backend
+  Backend
+
     Node.js: JavaScript runtime for server-side development
     Express: Web framework for Node.js
     MongoDB: NoSQL database for data storage
@@ -45,10 +55,9 @@ EatEase is a modern food ordering mobile application built with Flutter that pro
     Bcrypt: Password hashing
     Nodemailer: Email service for password reset
 
-# Payment Processing
-    PayMongo: Online payment gateway integration for the Philippines
 
 # Installation
+
   Prerequisites
       Flutter SDK (2.10.0 or higher)
       Dart SDK (2.16.0 or higher)
@@ -58,33 +67,33 @@ EatEase is a modern food ordering mobile application built with Flutter that pro
 
 # Mobile App Setup
   
-  # 1. Clone the repository:
+  1. Clone the repository:
      
        git clone https://github.com/jDxve/EatEase.git
      
-  # 2. Navigate to the project directory:
+  2. Navigate to the project directory:
 
         cd eatease
      
-  # 3. Install dependencies:
+  3. Install dependencies:
 
         flutter pub get
      
-  # 4. Run the application:
+  4. Run the application:
 
        flutter run
 
 # Backend Setup:
 
-  # 1. Navigate to the backend directory:
+  1. Navigate to the backend directory:
      
        cd backend
      
-  # 2. Install dependencies:
+  2. Install dependencies:
 
         npm install
      
-  # 3. Set up environment variables:
+  3. Set up environment variables:
 
        Create a .env file in the backend directory with the following:
 
@@ -99,18 +108,21 @@ EatEase is a modern food ordering mobile application built with Flutter that pro
           EMAIL_USER=eatease9@gmail.com
           EMAIL_PASS=your_app_password
      
-  # 4. Start the server:
+  4. Start the server:
 
        npm run dev or node server.js
 
 
 # Developer Contact Information
 
-  # Developer: 
+  Developer: 
       John Dave Bañas
-  # Email: 
+      
+  Email: 
       johndavebanas03@gmail.com
-  # LinkedIn: 
+      
+  LinkedIn: 
       linkedin.com/in/john-dave-bañas-560a8634a
-  # Facebook: 
+      
+  Facebook: 
       facebook.com/johndave.banas.16
